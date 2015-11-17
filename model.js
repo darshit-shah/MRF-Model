@@ -188,9 +188,15 @@ console.log(lp.dumpProgram());
 console.log(lp.solve());
 console.log('objective =', lp.getObjectiveValue());
 
+var rows=[];
+rows.push("Cluster,Operator,Part1,Part2,Allocation");
 for (var dIndex = 0; dIndex < decisionVariables.length; dIndex++) {
     console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
+    var keys = decisionVariables[dIndex].key.split("_");
+    keys.push(lp.get(decisionVariables[dIndex].key));
+    rows.push(keys.join());
 }
+fs.writeFileSync("output.csv", rows.join("\r\n"));
 
 //console.log(decisionVariables);
 
@@ -245,4 +251,43 @@ function readCsvFile(path, fieldsLength, convertUpper){
         }
     }
     return rows;
+}
+
+function JSON2CSV(objArray, includeHeader) {
+    var array = typeof objArray != 'object' ? [objArray] : objArray;
+    //console.log(typeof objArray);
+    var str = '';
+    var tempData = [];
+    if (array.length > 0) {
+        var keys = Object.keys(array[0]);
+        if (includeHeader != false) {
+            //str += keys.join(',') + '\r\n';
+            tempData.push(keys.join(','));
+        }
+        //   console.log('JSON2CSV called for Array Size:', objArray.length, ' and keys size: ', keys.length);
+        //append data
+        for (var k = 0; k < array.length; k++) {
+            var line = [];
+            for (var index = 0; index < keys.length; index++) {
+                if (array[k].hasOwnProperty(keys[index])) {
+                    var val = array[k][keys[index]];
+                    if (typeof val == 'string' && val != null) {
+                        if (val.indexOf(',') != -1)
+                            line.push('"' + val + '"');
+                        else
+                            line.push(val);
+                    }
+                    else if (Object.prototype.toString.call(val) === '[object Date]') {
+                        line.push(dateTimeFormat.formatDate(val, "yyyy-MM-dd HH:mm:ss"));
+                    }
+                    else {
+                        line.push(val);
+                    }
+                }
+            }
+            //str += line.join(',') + '\r\n';
+            tempData.push(line.join(','));
+        }
+        return tempData.join('\r\n') + '\r\n';
+    }
 }
