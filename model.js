@@ -244,7 +244,7 @@ console.log('objective =', lp.getObjectiveValue());
 
 if(modelResult.code === 0){
     var rows=[];
-    rows.push("Cluster,Operator,Part2,Allocation");
+    rows.push("Cluster,Operator,TruckType,Part2,Allocation");
     for (var dIndex = 0; dIndex < decisionVariables.length; dIndex++) {
         // console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
         var keys = decisionVariables[dIndex].key.split(":::");
