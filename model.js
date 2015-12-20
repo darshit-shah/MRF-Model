@@ -70,7 +70,7 @@ var utils={
     }
 }
 
-var demand = utils.readCSVFile('demand.csv', 4, true);
+var demand = utils.readCSVFile('demand.csv', 5, true);
 var supply = utils.readCSVFile('supply.csv', 6, true);
 
 var Row = lpsolve.Row;
@@ -109,9 +109,9 @@ var decisionVariables=[];
 
 var operatorKeys=[];
 var operatorValues=[];
-
 for (var i = 1; i < supply.length; i++) {
-    var supplyValue = parseInt(supply[i][5]);
+    var supplyValue = parseInt(supply[i][4]);
+    var usedTillNowCount = parseInt(supply[i][5]);
     if(supplyValue>0){
         var localDemandKey = supply[i][1]+":::"+supply[i][3];
         var demandIndex = demandKeys.indexOf(localDemandKey);
@@ -120,7 +120,7 @@ for (var i = 1; i < supply.length; i++) {
             var operatorIndex = operatorKeys.indexOf(operatorKey);
             if(operatorIndex == -1){
                 operatorKeys.push(operatorKey);
-                operatorValues.push({ key: operatorKeys[operatorKeys.length-1], supply: supplyValue, decisionVariables: [] });
+                operatorValues.push({ key: operatorKeys[operatorKeys.length-1], supply: supplyValue, decisionVariables: [], count: usedTillNowCount});
                 operatorIndex = operatorKeys.length-1;
             }
         // for (var iMG = 1; iMG < 2; iMG++) {
@@ -133,7 +133,7 @@ for (var i = 1; i < supply.length; i++) {
             for (var iSG = 1; iSG < 3; iSG++) {
                 var variableName = supply[i][1]+":::"+supply[i][2]+":::"+supply[i][3]+":::SG"+iSG;//C1_O1_MG1_SG1
                 var decisionVariable = lp.addColumn(variableName, true);
-                //objective = objective.Add(decisionVariable, 1);
+                objective = objective.Add(decisionVariable, usedTillNowCount);
                 decisionVariables.push({key:variableName, value:decisionVariable});
 
                 demandValues[demandIndex].decisionVariables.push(decisionVariable);
@@ -237,19 +237,22 @@ for (var dIndex = 0; dIndex < operatorKeys.length; dIndex++) {
 console.log("objective", objective);
 lp.setObjective(objective);
 
-console.log(lp.dumpProgram());
+// console.log(lp.dumpProgram());
 var modelResult = lp.solve();
 console.log(modelResult);
 console.log('objective =', lp.getObjectiveValue());
 
 if(modelResult.code === 0){
     var rows=[];
-    rows.push("Cluster,Operator,Part1,Part2,Allocation");
+    rows.push("Cluster,Operator,Part2,Allocation");
     for (var dIndex = 0; dIndex < decisionVariables.length; dIndex++) {
-        console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
+        // console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
         var keys = decisionVariables[dIndex].key.split(":::");
-        keys.push(lp.get(decisionVariables[dIndex].key));
-        rows.push(keys.join());
+        var outputValue = lp.get(decisionVariables[dIndex].key);
+        if(outputValue>0){
+            keys.push(lp.get(decisionVariables[dIndex].key));
+            rows.push(keys.join());
+        }
     }
     fs.writeFileSync("output.csv", rows.join("\r\n"));
 }
