@@ -1,0 +1,7 @@
+Plant,Cluster,Part1,Demand
+P1,C1,MG1,30
+P1,C1,MG2,33
+P1,C1,MG3,35
+P1,C2,MG1,0
+P1,C2,MG2,3
+P1,C2,MG3,5
