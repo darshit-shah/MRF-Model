@@ -1,5 +1,4 @@
 var fs = require('fs');
-var d3 = require('d3');
 var debug = require('debug')('model:model')
 var utils={
     readCSVFile: function(path, fieldsLength, convertUpper){
@@ -177,20 +176,28 @@ function createIndents(){
                     var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
                     if(SGRow.supply>0){
                         // debug("demandValue < SGRow.supply", demandValue ,SGRow.supply, demandValue < SGRow.supply);
-                        if(demandValue < SGRow.supply){
-                            // debug({type:"demandValue < SGRow.supply", operator: selectedOperator, part: SGRow.part, demand:demandValue});
-                            insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, demandValue);
-                            SGRow.supply -= demandValue;
-                            demandValue = 0;
-                        }
-                        else {
-                            // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, demand:SGRow.supply});
-                            insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, SGRow.supply);
-                            demandValue -= SGRow.supply;
-                            SGRow.supply = 0;
-                            outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
-                            SGIndex--;
-                        }
+                        // if(demandValue < SGRow.supply){
+                        //     // debug({type:"demandValue < SGRow.supply", operator: selectedOperator, part: SGRow.part, demand:demandValue});
+                        //     insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, demandValue);
+                        //     SGRow.supply -= demandValue;
+                        //     demandValue = 0;
+                        // }
+                        // else {
+                        //     // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, demand:SGRow.supply});
+                        //     insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, SGRow.supply);
+                        //     demandValue -= SGRow.supply;
+                        //     SGRow.supply = 0;
+                        //     outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
+                        //     SGIndex--;
+                        // }
+                        debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
+                        insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
+                        SGRow.supply -= 1;
+                        demandValue -= 1;
+                    }
+                    else{
+                        outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
+                        SGIndex--;
                     }
                 }
                 if(outputClusterTruckTypeResult[selectedOperator].length === 0){
