@@ -67,10 +67,18 @@ var utils={
     }
 }
 
+var filesDIR="";
+if(process.argv.length === 3){
+    filesDIR = process.argv[2];
+    if(filesDIR[filesDIR.length-1] !== '/'){
+        filesDIR += "/";
+    }
+}
+
 function createIndents(){
-    var output = utils.readCSVFile('output.csv', 5, true);
-    var demand = utils.readCSVFile('DestinationDemand.csv', 5, true);
-    var destCount = utils.readCSVFile('DestinationCount.csv', 5, true);
+    var output = utils.readCSVFile(filesDIR+'output.csv', 5, true);
+    var demand = utils.readCSVFile(filesDIR+'Step11_Demand_Destination_Wise.csv', 6, true);
+    var destCount = utils.readCSVFile(filesDIR+'IndentCountConstraint.csv', 6, true);
 
     var outputClusterTruckType={};
     for (var i = 1; i < output.length; i++) {
@@ -156,9 +164,9 @@ function createIndents(){
     }
     for (var i = 1; i < demand.length; i++) {
         var currRow = demand[i];
-        var clusterTruckTypeKey = currRow[1]+":::"+currRow[2];
-        var destination=currRow[3];
-        var demandValue = parseInt(currRow[4]);
+        var clusterTruckTypeKey = currRow[2]+":::"+currRow[3];
+        var destination=currRow[4];
+        var demandValue = parseInt(currRow[5]);
         if(outputClusterTruckType.hasOwnProperty(clusterTruckTypeKey)){
             while(demandValue>0){
                 debug({row: i, clusterTruckTypeKey:clusterTruckTypeKey, destination:destination, demand:demandValue});
@@ -175,21 +183,6 @@ function createIndents(){
                 for(var SGIndex = 0;SGIndex<outputClusterTruckTypeResult[selectedOperator].length && demandValue>0 ;SGIndex++){
                     var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
                     if(SGRow.supply>0){
-                        // debug("demandValue < SGRow.supply", demandValue ,SGRow.supply, demandValue < SGRow.supply);
-                        // if(demandValue < SGRow.supply){
-                        //     // debug({type:"demandValue < SGRow.supply", operator: selectedOperator, part: SGRow.part, demand:demandValue});
-                        //     insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, demandValue);
-                        //     SGRow.supply -= demandValue;
-                        //     demandValue = 0;
-                        // }
-                        // else {
-                        //     // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, demand:SGRow.supply});
-                        //     insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, SGRow.supply);
-                        //     demandValue -= SGRow.supply;
-                        //     SGRow.supply = 0;
-                        //     outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
-                        //     SGIndex--;
-                        // }
                         debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
                         insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
                         SGRow.supply -= 1;
@@ -206,13 +199,23 @@ function createIndents(){
             }
         }
         else {
-            throw Error("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
+            //throw Error("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
         }
         // debug("Loop", i);
     }
 
-    fs.writeFileSync("indents.csv", indents.join("\r\n"));
+    fs.writeFileSync(filesDIR+"indents.csv", indents.join("\r\n"));
     debug("Done.");
+    process.exit(0);
 }
 
-createIndents();
+
+process.on("message", function(m){
+    console.log(m);
+    if(m.type === "START_PROCESS"){
+        createIndents();
+    }
+    else if(m.type === "KILL"){
+        process.exit(0);
+    }
+});
