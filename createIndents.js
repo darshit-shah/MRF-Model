@@ -3,7 +3,7 @@ var debug = require('debug')('model:model')
 var utils={
     readCSVFile: function(path, fieldsLength, convertUpper){
         var data = fs.readFileSync(path);
-        var rows = data.toString().split("\r\n")
+        var rows = data.toString().split("\n")
         for (var rIndex = 0; rIndex < rows.length; rIndex++) {
             if(rows[rIndex].length>0){
                 rows[rIndex]=rows[rIndex].split(",");
@@ -155,11 +155,10 @@ function createIndents(){
     }
 
     var indents=[];
-    indents.push(["Cluster","TruckType","Destination","operator","Part"]);
     function insertIndents(clusterTruckTypeKey, destination, operator, part, trucks){
         var keys = clusterTruckTypeKey.split(":::");
         for (var i = 0; i < trucks; i++) {
-            indents.push([keys[0], keys[1], destination, operator, part]);
+            indents.push({Cluster:keys[0], TruckType:keys[1], Destination:destination, operator:operator, Part:part});
         }
     }
     for (var i = 1; i < demand.length; i++) {
@@ -169,7 +168,7 @@ function createIndents(){
         var demandValue = parseInt(currRow[5]);
         if(outputClusterTruckType.hasOwnProperty(clusterTruckTypeKey)){
             while(demandValue>0){
-                debug({row: i, clusterTruckTypeKey:clusterTruckTypeKey, destination:destination, demand:demandValue});
+                // debug({row: i, clusterTruckTypeKey:clusterTruckTypeKey, destination:destination, demand:demandValue});
                 var destCountClusterTruckTypeResult = destCountClusterTruckType[clusterTruckTypeKey];
                 var outputClusterTruckTypeResult = outputClusterTruckType[clusterTruckTypeKey];
                 var operators = Object.keys(outputClusterTruckTypeResult);
@@ -183,7 +182,7 @@ function createIndents(){
                 for(var SGIndex = 0;SGIndex<outputClusterTruckTypeResult[selectedOperator].length && demandValue>0 ;SGIndex++){
                     var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
                     if(SGRow.supply>0){
-                        debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
+                        // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
                         insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
                         SGRow.supply -= 1;
                         demandValue -= 1;
@@ -204,18 +203,39 @@ function createIndents(){
         // debug("Loop", i);
     }
 
-    fs.writeFileSync(filesDIR+"indents.csv", indents.join("\r\n"));
+    indents=indents.sort(function(a,b){
+        if (a.operator < b.operator)
+           return -1;
+         if (a.operator > b.operator)
+           return 1;
+         return 0;
+    });
+    var Parts = {
+        "SG1":{counter:0, Dates : [1,3,5,2,4]},
+        "SG2":{counter:0, Dates : [6,8,10,7,9]}
+    }
+
+    for (var i = 0; i < indents.length; i++) {
+        debug(indents[i]);
+        var dateIndex = Parts[indents[i].Part].counter % Parts[indents[i].Part].Dates.length;
+        // debug(Parts[indents[i].part].counter, Parts[indents[i].part].Dates.length, dateIndex, Parts[indents[i].part].Dates[dateIndex]);
+        //indents.push({Cluster:keys[0], TruckType:keys[1], Destination:destination, operator:operator, Part:part});
+        indents[i].Date=Parts[indents[i].Part].Dates[dateIndex]
+        Parts[indents[i].Part].counter++;
+    }
+    fs.writeFileSync(filesDIR+"indents.csv", utils.JSON2CSV(indents,true));
     debug("Done.");
     process.exit(0);
 }
 
 
-process.on("message", function(m){
-    console.log(m);
-    if(m.type === "START_PROCESS"){
-        createIndents();
-    }
-    else if(m.type === "KILL"){
-        process.exit(0);
-    }
-});
+// process.on("message", function(m){
+//     console.log(m);
+//     if(m.type === "START_PROCESS"){
+//         createIndents();
+//     }
+//     else if(m.type === "KILL"){
+//         process.exit(0);
+//     }
+// });
+createIndents();

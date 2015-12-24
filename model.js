@@ -6,7 +6,7 @@ var lpsolve = require('lp_solve');
 var utils={
     readCSVFile: function(path, fieldsLength, convertUpper){
         var data = fs.readFileSync(path);
-        var rows = data.toString().split("\r\n")
+        var rows = data.toString().split("\n")
         for (var rIndex = 0; rIndex < rows.length; rIndex++) {
             if(rows[rIndex].length>0){
                 rows[rIndex]=rows[rIndex].split(",");
@@ -271,7 +271,7 @@ function runModel(){
                 rows.push(keys.join());
             }
         }
-        fs.writeFileSync(filesDIR+"output.csv", rows.join("\r\n"));
+        fs.writeFileSync(filesDIR+"output.csv", rows.join("\n"));
     }
     // process.send({type:"MODEL_COMPLETED"});
     process.exit(0);
