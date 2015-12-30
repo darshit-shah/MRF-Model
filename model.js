@@ -93,12 +93,13 @@ function runModel(){
     var demandKeys=[];
     var demandValues=[];
     for (var dIndex = 1; dIndex < demand.length; dIndex++) {
+        var plant = demand[dIndex][0];
         var demandValue = parseInt(demand[dIndex][4]);
         var cluster=demand[dIndex][1];
         var subCluster=demand[dIndex][2];
         var truckType=demand[dIndex][3];
         if(demandValue>0){
-            var localDemandKey = cluster+":::"+subCluster+":::"+truckType;
+            var localDemandKey = plant+":::"+cluster+":::"+subCluster+":::"+truckType;
             var localIndex = demandKeys.indexOf(localDemandKey);
             if(localIndex == -1){
                 demandKeys.push(localDemandKey);
@@ -126,15 +127,16 @@ function runModel(){
     for (var i = 1; i < supply.length; i++) {
         var supplyValue = parseInt(supply[i][8]);
         var usedTillNowCount = parseInt(supply[i][9]);
+        var plant = supply[i][0];
         var cluster = supply[i][1];
         var subcluster = supply[i][2];
         var truckType = supply[i][3];
         var operatorName = supply[i][4]
         if(supplyValue>0){
-            var localDemandKey = cluster+":::"+subcluster+":::"+truckType;
+            var localDemandKey = plant+":::"+cluster+":::"+subcluster+":::"+truckType;
             var demandIndex = demandKeys.indexOf(localDemandKey);
             if(demandIndex != -1){
-                var operatorKey = cluster+":::"+subcluster+":::"+operatorName+":::"+truckType;
+                var operatorKey = plant+":::"+cluster+":::"+subcluster+":::"+operatorName+":::"+truckType;
                 var operatorIndex = operatorKeys.indexOf(operatorKey);
                 if(operatorIndex == -1){
                     operatorKeys.push(operatorKey);
@@ -149,7 +151,7 @@ function runModel(){
             //         demandMGIndex = demandMGKeys.length-1;
             //     }
                 for (var iSG = 1; iSG < 3; iSG++) {
-                    var variableName = cluster+":::"+subcluster+":::"+operatorName+":::"+truckType+":::SG"+iSG;//C1_O1_MG1_SG1
+                    var variableName = plant+":::"+cluster+":::"+subcluster+":::"+operatorName+":::"+truckType+":::SG"+iSG;//C1_O1_MG1_SG1
                     var decisionVariable = lp.addColumn(variableName, true);
                     objective = objective.Add(decisionVariable, usedTillNowCount);
                     decisionVariables.push({key:variableName, value:decisionVariable});
@@ -262,7 +264,7 @@ function runModel(){
 
     if(modelResult.code === 0){
         var rows=[];
-        rows.push("Cluster,SubCluster,Operator,TruckType,Part2,Allocation");
+        rows.push("Plant,Cluster,SubCluster,Operator,TruckType,Part2,Allocation");
         for (var dIndex = 0; dIndex < decisionVariables.length; dIndex++) {
             // console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
             var keys = decisionVariables[dIndex].key.split(":::");

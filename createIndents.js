@@ -77,34 +77,34 @@ if(process.argv.length === 3){
 }
 
 function createIndents(){
-    var output = utils.readCSVFile(filesDIR+'output.csv', 6, true);
+    var output = utils.readCSVFile(filesDIR+'output.csv', 7, true);
     var demand = utils.readCSVFile(filesDIR+'Step11_Demand_Destination_Wise.csv', 7, true);
-    var destCount = utils.readCSVFile(filesDIR+'IndentCountConstraint.csv', 6, true);
+    var destCount = utils.readCSVFile(filesDIR+'IndentCountConstraint.csv', 7, true);
 
-    var outputClusterTruckType={};
+    var outputPlantClusterTruckType={};
     for (var i = 1; i < output.length; i++) {
         var currRow = output[i];
-        var clusterTruckTypeKey = currRow[0]+":::"+currRow[1]+":::"+currRow[3];
-        var operatorKey=currRow[2];
-        var part=currRow[4];
-        var supply=parseInt(currRow[5]);
-        if(!outputClusterTruckType.hasOwnProperty(clusterTruckTypeKey)){
-            outputClusterTruckType[clusterTruckTypeKey]={};
+        var plantClusterTruckTypeKey = currRow[0]+":::"+currRow[1]+":::"+currRow[2]+":::"+currRow[4];
+        var operatorKey=currRow[3];
+        var part=currRow[5];
+        var supply=parseInt(currRow[6]);
+        if(!outputPlantClusterTruckType.hasOwnProperty(plantClusterTruckTypeKey)){
+            outputPlantClusterTruckType[plantClusterTruckTypeKey]={};
         }
-        if(!outputClusterTruckType[clusterTruckTypeKey].hasOwnProperty(operatorKey)){
-            outputClusterTruckType[clusterTruckTypeKey][operatorKey]=[];
+        if(!outputPlantClusterTruckType[plantClusterTruckTypeKey].hasOwnProperty(operatorKey)){
+            outputPlantClusterTruckType[plantClusterTruckTypeKey][operatorKey]=[];
         }
-        outputClusterTruckType[clusterTruckTypeKey][operatorKey].push({part:part, supply:supply});
+        outputPlantClusterTruckType[plantClusterTruckTypeKey][operatorKey].push({part:part, supply:supply});
     }
     // debug(outputClusterTruckType);
 
     var destCountClusterTruckType={};
     for (var i = 1; i < destCount.length; i++) {
         var currRow = destCount[i];
-        var clusterTruckTypeKey = currRow[0]+":::"+currRow[1]+":::"+currRow[4];
-        var operatorKey=currRow[3];
-        var destination=currRow[2];
-        var count=currRow[5];
+        var clusterTruckTypeKey = currRow[0]+":::"+currRow[1]+":::"+currRow[2]+":::"+currRow[5];
+        var operatorKey=currRow[4];
+        var destination=currRow[3];
+        var count=currRow[6];
         if(!destCountClusterTruckType.hasOwnProperty(clusterTruckTypeKey)){
             destCountClusterTruckType[clusterTruckTypeKey]={};
         }
@@ -156,35 +156,36 @@ function createIndents(){
     }
 
     var indents=[];
-    function insertIndents(clusterTruckTypeKey, destination, operator, part, trucks){
+    function insertIndents(plant,clusterTruckTypeKey, destination, operator, part, trucks){
         var keys = clusterTruckTypeKey.split(":::");
         for (var i = 0; i < trucks; i++) {
-            indents.push({Cluster:keys[0],SubCLuster:keys[1], TruckType:keys[2], Destination:destination, operator:operator, Part:part});
+            indents.push({Plant:plant, ClubPlants:keys[0], Cluster:keys[1],SubCLuster:keys[2], TruckType:keys[3], Destination:destination, operator:operator, Part:part});
         }
     }
     for (var i = 1; i < demand.length; i++) {
         var currRow = demand[i];
-        var clusterTruckTypeKey = currRow[2]+":::"+currRow[3]+":::"+currRow[4];
+        var plant = currRow[1];
+        var plantClusterTruckTypeKey = currRow[0]+":::"+currRow[2]+":::"+currRow[3]+":::"+currRow[4];
         var destination=currRow[5];
         var demandValue = parseInt(currRow[6]);
-        if(outputClusterTruckType.hasOwnProperty(clusterTruckTypeKey)){
+        if(outputPlantClusterTruckType.hasOwnProperty(plantClusterTruckTypeKey)){
             while(demandValue>0){
                 // debug({row: i, clusterTruckTypeKey:clusterTruckTypeKey, destination:destination, demand:demandValue});
                 var destCountClusterTruckTypeResult = destCountClusterTruckType[clusterTruckTypeKey];
-                var outputClusterTruckTypeResult = outputClusterTruckType[clusterTruckTypeKey];
+                var outputClusterTruckTypeResult = outputPlantClusterTruckType[plantClusterTruckTypeKey];
                 var operators = Object.keys(outputClusterTruckTypeResult);
                 if(operators.length === 0){
                     debug(clusterTruckTypeKey, demandValue)
                     throw Error("No operators");
                 }
-                var selectedOperator = selectOperatorForDestination(clusterTruckTypeKey, destination, operators);
-                destCountClusterTruckType[clusterTruckTypeKey][destination][selectedOperator]++;
+                var selectedOperator = selectOperatorForDestination(plantClusterTruckTypeKey, destination, operators);
+                destCountClusterTruckType[plantClusterTruckTypeKey][destination][selectedOperator]++;
                 // debug("Selected Operator", selectedOperator, "for index ", i, demandValue);
                 for(var SGIndex = 0;SGIndex<outputClusterTruckTypeResult[selectedOperator].length && demandValue>0 ;SGIndex++){
                     var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
                     if(SGRow.supply>0){
                         // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
-                        insertIndents(clusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
+                        insertIndents(plant,plantClusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
                         SGRow.supply -= 1;
                         demandValue -= 1;
                     }
