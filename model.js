@@ -11,7 +11,8 @@ var utils={
             if(rows[rIndex].length>0){
                 rows[rIndex]=rows[rIndex].split(",");
                 if(rows[rIndex].length != fieldsLength){
-                    console.log(fieldsLength," fields required. Found: ",rows[rIndex].length, "Data: ", rows[rIndex]);
+                    throw Error(fieldsLength," fields required. Found: ",rows[rIndex].length, "Data: ", rows[rIndex]);
+                    process.exit(0);
                     rows.splice(rIndex, 1);
                     rIndex--;
                 }
@@ -148,7 +149,7 @@ function runModel(){
             //         demandMGIndex = demandMGKeys.length-1;
             //     }
                 for (var iSG = 1; iSG < 3; iSG++) {
-                    var variableName = subcluster+":::"+operatorName+":::"+truckType+":::SG"+iSG;//C1_O1_MG1_SG1
+                    var variableName = cluster+":::"+subcluster+":::"+operatorName+":::"+truckType+":::SG"+iSG;//C1_O1_MG1_SG1
                     var decisionVariable = lp.addColumn(variableName, true);
                     objective = objective.Add(decisionVariable, usedTillNowCount);
                     decisionVariables.push({key:variableName, value:decisionVariable});
@@ -261,7 +262,7 @@ function runModel(){
 
     if(modelResult.code === 0){
         var rows=[];
-        rows.push("SubCLuster,Operator,TruckType,Part2,Allocation");
+        rows.push("Cluster,SubCluster,Operator,TruckType,Part2,Allocation");
         for (var dIndex = 0; dIndex < decisionVariables.length; dIndex++) {
             // console.log(decisionVariables[dIndex].key,' =', lp.get(decisionVariables[dIndex].key));
             var keys = decisionVariables[dIndex].key.split(":::");
@@ -277,12 +278,13 @@ function runModel(){
     process.exit(0);
 }
 
-process.on("message", function(m){
-    console.log(m);
-    if(m.type === "START_PROCESS"){
-        runModel();
-    }
-    else if(m.type === "KILL"){
-        process.exit(0);
-    }
-});
+// process.on("message", function(m){
+//     console.log(m);
+//     if(m.type === "START_PROCESS"){
+//         runModel();
+//     }
+//     else if(m.type === "KILL"){
+//         process.exit(0);
+//     }
+// });
+runModel();
