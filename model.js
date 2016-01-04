@@ -222,10 +222,10 @@ function runModel() {
         lp.addConstraint(SGConstraint, 'LE', Math.ceil(SGValue), 'MG (' + operatorValues[dIndex].key + ')');
 
         if (operatorValues[dIndex].decisionVariables[j].indexOf(":::SG1") > -1) {
-          innerConstraints = innerConstraints.Add(operatorValues[dIndex].decisionVariables[j], 1);
+          innerConstraints = innerConstraints.Add(operatorValues[dIndex].decisionVariables[j], -1);
           innerConstraintsAdded = true;
         } else if (operatorValues[dIndex].decisionVariables[j].indexOf(":::SG2") > -1) {
-          innerConstraints = innerConstraints.Add(operatorValues[dIndex].decisionVariables[j], -1);
+          innerConstraints = innerConstraints.Add(operatorValues[dIndex].decisionVariables[j], 1);
           innerConstraintsAdded = true;
         }
         // }
