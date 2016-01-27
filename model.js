@@ -77,8 +77,8 @@ if (process.argv.length === 3) {
 }
 
 function runModel() {
-  var demand = utils.readCSVFile(filesDIR + 'Step10_Demand_SubCluster_Wise.csv', 5, true);
-  var supply = utils.readCSVFile(filesDIR + 'Master_Transporter_Share.csv', 10, true);
+  var demand = utils.readCSVFile(filesDIR + 'S8 - Model Demand Input.csv', 5, true);
+  var supply = utils.readCSVFile(filesDIR + 'M6 - Transporter Supply Commitment.csv', 10, true);
 
   var Row = lpsolve.Row;
 
@@ -278,7 +278,7 @@ function runModel() {
         rows.push(keys.join());
       }
     }
-    fs.writeFileSync(filesDIR + "output.csv", rows.join("\n"));
+    fs.writeFileSync(filesDIR + "R1 - Indent Summary by Sub-bucket.csv", rows.join("\n"));
   }
   // process.send({type:"MODEL_COMPLETED"});
   process.exit(0);

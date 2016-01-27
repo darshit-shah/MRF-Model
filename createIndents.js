@@ -73,9 +73,9 @@ if (process.argv.length === 3) {
 }
 
 function createIndents() {
-  var output = utils.readCSVFile(filesDIR + 'output.csv', 7, true);
-  var demand = utils.readCSVFile(filesDIR + 'Step11_Demand_Destination_Wise.csv', 7, true);
-  var destCount = utils.readCSVFile(filesDIR + 'IndentCountConstraint.csv', 7, true);
+  var output = utils.readCSVFile(filesDIR + 'R1 - Indent Summary by Sub-bucket.csv', 7, true);
+  var demand = utils.readCSVFile(filesDIR + 'S9 - Final Demand V2.csv', 7, true);
+  var destCount = utils.readCSVFile(filesDIR + 'M10 - Transporter Priority Constraint.csv', 7, true);
 
   var ClubPlantDemand = {};
   for (var i = 1; i < demand.length; i++) {
@@ -346,7 +346,7 @@ function createIndents() {
       indents[i].Date = Parts[indents[i].Part].Dates[dateIndex]
       Parts[indents[i].Part].counter++;
     }
-    fs.writeFileSync(filesDIR + "indents.csv", utils.JSON2CSV(indents, true));
+    fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
     debug("Done.");
     // debug(ClubPlantDemand['1150/1180']);
     // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
