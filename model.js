@@ -216,6 +216,9 @@ function runModel() {
         } else {
           throw new Error("invalid Sub Group", operatorValues[dIndex].decisionVariables[j]);
         }
+        if(SGValue === parseInt(SGValue)){
+          SGValue -= 0.00001;
+        }
         var SGConstraint = new Row();
         SGConstraint = SGConstraint.Add(operatorValues[dIndex].decisionVariables[j], 1);
         lp.addConstraint(SGConstraint, 'GE', Math.floor(SGValue), 'MG (' + operatorValues[dIndex].key + ')');
@@ -263,7 +266,7 @@ function runModel() {
 
   // console.log(lp.dumpProgram());
   var modelResult = lp.solve();
-  // console.log(modelResult);
+  console.log(modelResult);
   console.log('objective =', lp.getObjectiveValue());
 
   if (modelResult.code === 0) {
