@@ -5,10 +5,11 @@ var utils = {
     var data = fs.readFileSync(path);
     var rows = data.toString().split("\n");
     for (var rIndex = 0; rIndex < rows.length; rIndex++) {
-      if (rows[rIndex].length > 0) {
+      if (rows[rIndex].length > 1) {
         rows[rIndex] = rows[rIndex].split(",");
         if (rows[rIndex].length != fieldsLength) {
-          throw Error(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex]);
+          console.log(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex])
+          throw Error("Field Mismatch");
           process.exit(0);
           rows.splice(rIndex, 1);
           rIndex--;
@@ -65,11 +66,16 @@ var utils = {
 }
 
 var filesDIR = "";
-if (process.argv.length === 3) {
+if (process.argv[2] != undefined) {
   filesDIR = process.argv[2];
   if (filesDIR[filesDIR.length - 1] !== '/') {
     filesDIR += "/";
   }
+}
+
+var numDaysInBucket = 10;
+if (process.argv[3] != undefined) {
+  numDaysInBucket = +process.argv[3];
 }
 
 function createIndents() {
@@ -285,7 +291,7 @@ function createIndents() {
                 SGRow.supply -= 1;
                 demandValue -= 1;
                 found = true;
-                if (SGRow.supply == 0){
+                if (SGRow.supply == 0) {
                   outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
                   SGIndex--;
                 }
@@ -298,7 +304,7 @@ function createIndents() {
           if (outputClusterTruckTypeResult[selectedOperator].length === 0) {
             delete outputClusterTruckTypeResult[selectedOperator];
           }
-          if(Object.keys(outputPlantClusterTruckType[plantClusterTruckTypeKey]).length === 0){
+          if (Object.keys(outputPlantClusterTruckType[plantClusterTruckTypeKey]).length === 0) {
             delete outputPlantClusterTruckType[plantClusterTruckTypeKey];
           }
           // break;
@@ -327,14 +333,50 @@ function createIndents() {
         return 1;
       return 0;
     });
-    var Parts = {
-      "SG1": {
-        counter: 0,
-        Dates: [1, 3, 5, 2, 4]
-      },
-      "SG2": {
-        counter: 0,
-        Dates: [6, 8, 10, 7, 9]
+    var Parts = {};
+    if (numDaysInBucket === 8) {
+      Parts = {
+        "SG1": {
+          counter: 0,
+          Dates: [1, 3, 2, 4]
+        },
+        "SG2": {
+          counter: 0,
+          Dates: [5, 7, 6, 8]
+        }
+      }
+    } else if (numDaysInBucket === 9) {
+      Parts = {
+        "SG1": {
+          counter: 0,
+          Dates: [1, 3, 5, 2, 4]
+        },
+        "SG2": {
+          counter: 0,
+          Dates: [6, 8, 7, 9]
+        }
+      }
+    } else if (numDaysInBucket === 10) {
+      Parts = {
+        "SG1": {
+          counter: 0,
+          Dates: [1, 3, 5, 2, 4]
+        },
+        "SG2": {
+          counter: 0,
+          Dates: [6, 8, 10, 7, 9]
+        }
+      }
+    } else {
+      Parts = {
+        "SG1": {
+          counter: 0,
+          Dates: [1, 3, 5, 2, 4, 6]
+        },
+        "SG2": {
+          counter: 0,
+          Dates: [7, 9, 11, 8, 10]
+        }
       }
     }
 
