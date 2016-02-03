@@ -281,6 +281,7 @@ function createIndents() {
                 // if(plant==="1150")
                 // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
                 if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] > 0) {
+                  debug(i, plantClusterTruckTypeKey, plant, destination, SGRow.part, currRow[6]);
                   destCountClusterTruckType[plantClusterTruckTypeKey][destination][selectedOperator] += 1;
                   ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] -= 1;
                   ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].demand -= 1;
@@ -294,7 +295,6 @@ function createIndents() {
                     // outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
                     // SGIndex--;
                   // }
-                  // debug(i, plantClusterTruckTypeKey, destination, SGRow.part, currRow[6]);
                   break;
                 }
               } else {
