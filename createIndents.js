@@ -8,7 +8,7 @@ var utils = {
       if (rows[rIndex].length > 1) {
         rows[rIndex] = rows[rIndex].split(",");
         if (rows[rIndex].length != fieldsLength) {
-          console.log(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex])
+          console.log(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex]);
           throw Error("Field Mismatch");
           process.exit(0);
           rows.splice(rIndex, 1);
@@ -34,7 +34,7 @@ var utils = {
     var tempData = [];
     if (array.length > 0) {
       var keys = Object.keys(array[0]);
-      if (includeHeader != false) {
+      if (includeHeader !== false) {
         //str += keys.join(',') + '\r\n';
         tempData.push(keys.join(','));
       }
@@ -63,7 +63,7 @@ var utils = {
       return tempData.join('\r\n') + '\r\n';
     }
   }
-}
+};
 
 var filesDIR = "";
 if (process.argv[2] != undefined) {
@@ -200,26 +200,6 @@ function createIndents() {
       }
     });
 
-    // debug("Sorting", destCountClusterTruckType[clusterTruckTypeKey][destination]);
-    // operators = Object.keys(destCountClusterTruckType[clusterTruckTypeKey][destination]);
-    // var selectedOperator = null;
-    // var minValue = +Infinity;
-    // operators.every(function(operator) {
-    //   var currValue = destCountClusterTruckType[clusterTruckTypeKey][destination][operator];
-    //   if (currValue < minValue) {
-    //     minValue = currValue;
-    //     selectedOperator = operator;
-    //   }
-    //   if (currValue == 0) {
-    //     return false;
-    //   }
-    //   return true;
-    // });
-    // if (selectedOperator == null) {
-    //   debug(operators);
-    //   throw Error("selectedOperator is null from given operators" + operators);
-    // }
-    // return selectedOperator;
     operators.sort(function(operator1, operator2) {
       var currValue1 = destCountClusterTruckType[clusterTruckTypeKey][destination][operator1];
       var currValue2 = destCountClusterTruckType[clusterTruckTypeKey][destination][operator2];
@@ -252,148 +232,247 @@ function createIndents() {
       });
     }
   }
-  for (var i = 1; i < demand.length; i++) {
-    var currRow = demand[i];
-    var clubPlant = currRow[0];
-    var plant = currRow[1];
-    var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4];
-    var destination = currRow[5];
-    var demandValue = parseInt(currRow[6]);
-    if (outputPlantClusterTruckType.hasOwnProperty(plantClusterTruckTypeKey)) {
-      while (demandValue > 0) {
-        // debug({
-        //   row: i,
-        //   plantClusterTruckTypeKey: plantClusterTruckTypeKey,
-        //   destination: destination,
-        //   demand: demandValue
-        // });
-        var destCountClusterTruckTypeResult = destCountClusterTruckType[plantClusterTruckTypeKey];
-        var outputClusterTruckTypeResult = outputPlantClusterTruckType[plantClusterTruckTypeKey];
-        var operators = Object.keys(outputClusterTruckTypeResult);
-        if (operators.length === 0) {
-          debug(clusterTruckTypeKey, demandValue);
-          throw Error("No operators");
-        }
-        operators = selectOperatorForDestination(plantClusterTruckTypeKey, destination, operators);
-        var found = false;
-        for (var operatorIndex = 0; operatorIndex < operators.length && found === false; operatorIndex++) {
-          var selectedOperator = operators[operatorIndex];
-          // debug("Selected Operator", selectedOperator, "for index ", i, demandValue);
-          for (var SGIndex = 0; SGIndex < outputClusterTruckTypeResult[selectedOperator].length && found === false && demandValue > 0; SGIndex++) {
-            var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
-            if (SGRow.supply > 0) {
-              // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
-              if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] > 0) {
-                destCountClusterTruckType[plantClusterTruckTypeKey][destination][selectedOperator] += 1;
-                ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] -= 1;
-                ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].demand -= 1;
-                insertIndents(plant, plantClusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
-                SGRow.supply -= 1;
-                demandValue -= 1;
-                found = true;
-                if (SGRow.supply == 0) {
-                  outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
-                  SGIndex--;
-                }
+
+
+  while (true) {
+    if (demand.length === 1)
+      break;
+    for (var i = 1; i < demand.length; i++) {
+      var continueWhile = false;
+      var currRow = demand[i];
+      var clubPlant = currRow[0];
+      var plant = currRow[1];
+      var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4];
+      var destination = currRow[5];
+      var demandValue = parseInt(currRow[6]);
+      if(demandValue <= 0){
+        demand.splice(i,1);
+        i--;
+        continue;
+      }
+      if (outputPlantClusterTruckType.hasOwnProperty(plantClusterTruckTypeKey)) {
+        if (demandValue > 0 && continueWhile === false) {
+          // if(plant==="1150")
+          // debug({
+          //   row: i,
+          //   plantClusterTruckTypeKey: plantClusterTruckTypeKey,
+          //   destination: destination,
+          //   demand: demandValue
+          // });
+          var destCountClusterTruckTypeResult = destCountClusterTruckType[plantClusterTruckTypeKey];
+          var outputClusterTruckTypeResult = outputPlantClusterTruckType[plantClusterTruckTypeKey];
+          var operators = Object.keys(outputClusterTruckTypeResult);
+          if (operators.length === 0) {
+            debug(outputClusterTruckTypeResult, demandValue);
+            throw Error("No operators");
+          }
+          operators = selectOperatorForDestination(plantClusterTruckTypeKey, destination, operators);
+          var found = false;
+          for (var SGIndex = 0; SGIndex < 2 && demandValue > 0; SGIndex++) {
+            for (var operatorIndex = 0; operatorIndex < operators.length; operatorIndex++) {
+              var selectedOperator = operators[operatorIndex];
+              // if(plant==="1150")
+              // debug("Selected Operator", selectedOperator, "for index ", i, demandValue);
+              if(outputClusterTruckTypeResult[selectedOperator]==undefined || outputClusterTruckTypeResult[selectedOperator][SGIndex] == undefined){
+                continue;
               }
-            } else {
-              outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
-              SGIndex--;
+              var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
+              if (SGRow.supply > 0) {
+                // if(plant==="1150")
+                // debug({type:"demandValue >= SGRow.supply",operator: selectedOperator, part: SGRow.part, Supply:SGRow.supply, demand:1});
+                if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] > 0) {
+                  destCountClusterTruckType[plantClusterTruckTypeKey][destination][selectedOperator] += 1;
+                  ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].Parts[SGRow.part] -= 1;
+                  ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].demand -= 1;
+                  insertIndents(plant, plantClusterTruckTypeKey, destination, selectedOperator, SGRow.part, 1);
+                  SGRow.supply -= 1;
+                  demandValue -= 1;
+                  currRow[6] = parseInt(currRow[6]) - 1;
+                  found = true;
+                  continueWhile = true;
+                  // if (SGRow.supply === 0) {
+                    // outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
+                    // SGIndex--;
+                  // }
+                  // debug(i, plantClusterTruckTypeKey, destination, SGRow.part, currRow[6]);
+                  break;
+                }
+              } else {
+                // outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
+                // SGIndex--;
+              }
+              if (outputClusterTruckTypeResult[selectedOperator].length === 0) {
+                delete outputClusterTruckTypeResult[selectedOperator];
+              }
+            }
+            if (Object.keys(outputPlantClusterTruckType[plantClusterTruckTypeKey]).length === 0) {
+              delete outputPlantClusterTruckType[plantClusterTruckTypeKey];
             }
           }
-          if (outputClusterTruckTypeResult[selectedOperator].length === 0) {
-            delete outputClusterTruckTypeResult[selectedOperator];
+          if (found === false) {
+            // debug(ClubPlantDemand['1150/1180']);
+            // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
+            // debug(ClubPlantDemand['1150/1180'].Plants['1180']);
+            debug(ClubPlantDemand[plantClusterTruckTypeKey].Plants['1150'], ClubPlantDemand[plantClusterTruckTypeKey].Plants['1180']);
+            debug(i, " out of ", demand.length, currRow);
+            // writeIndents();
+            throw Error("Issue with operator selection");
+            // break;
           }
-          if (Object.keys(outputPlantClusterTruckType[plantClusterTruckTypeKey]).length === 0) {
-            delete outputPlantClusterTruckType[plantClusterTruckTypeKey];
-          }
-          // break;
         }
-        if (found === false) {
-          // debug(ClubPlantDemand['1150/1180']);
-          // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
-          // debug(ClubPlantDemand['1150/1180'].Plants['1180']);
-          debug(i, currRow);
-          // writeIndents();
-          throw Error("Issue with operator selection");
-          // break;
-        }
+      } else {
+        debug("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
+        demand.splice(i,1);
+        i--;
+        continue;
+        // throw Error("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
       }
-    } else {
-      //throw Error("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
+      // debug("Loop", i);
     }
-    // debug("Loop", i);
   }
 
   function writeIndents() {
-    indents = indents.sort(function(a, b) {
-      if (a.operator < b.operator)
-        return -1;
-      if (a.operator > b.operator)
-        return 1;
-      return 0;
+    var destinationCount = {};
+    indents.forEach(function(d) {
+      var key = d.Plant + ":::" + d.Cluster + ":::" + d.SubCLuster + ":::" + d.TruckType + ":::" + d.Destination;
+      if (!destinationCount.hasOwnProperty(key)) {
+        destinationCount[key] = 0;
+      } else {
+        destinationCount[key]++;
+      }
+      d["sortIndex"] = destinationCount[key];
     });
-    var Parts = {};
+    indents = indents.sort(function(a, b) {
+      return a.sortIndex - b.sortIndex;
+      // if (a.sortIndex < b.sortIndex)
+      //   return -1;
+      // if (a.sortIndex > b.sortIndex)
+      //   return 1;
+      // return 0;
+    });
+
+    var SG1Dates = [];
+    var SG2Dates = [];
     if (numDaysInBucket === 8) {
-      Parts = {
-        "SG1": {
-          counter: 0,
-          Dates: [1, 3, 2, 4]
-        },
-        "SG2": {
-          counter: 0,
-          Dates: [5, 7, 6, 8]
-        }
-      }
+      SG1Dates = [1, 3, 2, 4];
+      SG2Dates = [5, 7, 6, 8];
     } else if (numDaysInBucket === 9) {
-      Parts = {
-        "SG1": {
-          counter: 0,
-          Dates: [1, 3, 5, 2, 4]
-        },
-        "SG2": {
-          counter: 0,
-          Dates: [6, 8, 7, 9]
-        }
-      }
+      SG1Dates = [1, 3, 5, 2, 4];
+      SG2Dates = [6, 8, 7, 9];
     } else if (numDaysInBucket === 10) {
-      Parts = {
-        "SG1": {
-          counter: 0,
-          Dates: [1, 3, 5, 2, 4]
-        },
-        "SG2": {
-          counter: 0,
-          Dates: [6, 8, 10, 7, 9]
-        }
-      }
+      SG1Dates = [1, 3, 5, 2, 4];
+      SG2Dates = [6, 8, 10, 7, 9];
     } else {
-      Parts = {
-        "SG1": {
+      SG1Dates = [1, 3, 5, 2, 4, 6];
+      SG2Dates = [7, 9, 11, 8, 10];
+    }
+    var destinationCounter = {};
+    var operatorCounter = {};
+
+    function getDateCounter() {
+      var Parts = {
+        SG1: [],
+        SG2: []
+      };
+      for (var i = 0; i < SG1Dates.length; i++) {
+        Parts.SG1[i] = {
+          key: SG1Dates[i],
           counter: 0,
-          Dates: [1, 3, 5, 2, 4, 6]
-        },
-        "SG2": {
+          index: i
+        };
+      }
+      for (var i = 0; i < SG2Dates.length; i++) {
+        Parts.SG2[i] = {
+          key: SG2Dates[i],
           counter: 0,
-          Dates: [7, 9, 11, 8, 10]
+          index: i
+        };
+      }
+      return Parts;
+    }
+
+    function findDateFor(destination, operator, part) {
+      if (!destinationCounter.hasOwnProperty(destination)) {
+        destinationCounter[destination] = getDateCounter();
+      }
+      if (!operatorCounter.hasOwnProperty(operator)) {
+        operatorCounter[operator] = getDateCounter();
+      }
+      var availableDays = [];
+      if (part == "SG1")
+        availableDays = SG1Dates;
+      else
+        availableDays = SG2Dates;
+      var desinations = destinationCounter[destination][part].filter(function(d) {
+        return availableDays.indexOf(d.key) !== -1;
+      });
+      var minSelection = [{
+        key: desinations[0].key,
+        index: desinations[0].index
+      }];
+      var minCounter = desinations[0].counter;
+      for (var i = 1; i < desinations.length; i++) {
+        if (minCounter > desinations[i].counter) {
+          minSelection = [{
+            key: desinations[i].key,
+            index: desinations[i].index
+          }];
+          minCounter = desinations[i].counter;
+        } else if (minCounter === desinations[i].counter) {
+          minSelection.push({
+            key: desinations[i].key,
+            index: desinations[i].index
+          });
         }
       }
+
+      // debug(operatorCounter, operator, part, minSelection);
+      availableDays = minSelection.map(function(d) {
+        return d.key;
+      });
+      var operators = operatorCounter[operator][part].filter(function(d) {
+        return availableDays.indexOf(d.key) !== -1;
+      });
+      minSelection = [{
+        key: operators[0].key,
+        index: operators[0].index
+      }];
+      minCounter = operators[0].counter;
+      for (var i = 1; i < operators.length; i++) {
+        if (minCounter > operators[i].counter) {
+          minSelection = [{
+            key: operators[i].key,
+            index: operators[i].index
+          }];
+          minCounter = operators[i].counter;
+        } else if (minCounter === operators[i].counter) {
+          minSelection.push({
+            key: operators[i].key,
+            index: operators[i].index
+          });
+        }
+      }
+      destinationCounter[destination][part][minSelection[0].index].counter++;
+      operatorCounter[operator][part][minSelection[0].index].counter++;
+      return minSelection[0].key;
     }
 
     for (var i = 0; i < indents.length; i++) {
+      indents[i].Date = findDateFor(indents[i].Destination, indents[i].operator, indents[i].Part);
+      delete indents[i].sortIndex;
       // debug(indents[i]);
-      var dateIndex = Parts[indents[i].Part].counter % Parts[indents[i].Part].Dates.length;
+      // var dateIndex = Parts[indents[i].Part].counter % Parts[indents[i].Part].Dates.length;
       // debug(Parts[indents[i].part].counter, Parts[indents[i].part].Dates.length, dateIndex, Parts[indents[i].part].Dates[dateIndex]);
       //indents.push({Cluster:keys[0], TruckType:keys[1], Destination:destination, operator:operator, Part:part});
-      indents[i].Date = Parts[indents[i].Part].Dates[dateIndex]
-      Parts[indents[i].Part].counter++;
+      // indents[i].Date = Parts[indents[i].Part].Dates[dateIndex]
+      // Parts[indents[i].Part].counter++;
     }
     fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
     debug("Done.");
     // debug(ClubPlantDemand['1150/1180']);
     // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
     // debug(ClubPlantDemand['1150/1180'].Plants['1180']);
-    debug(JSON.stringify(outputPlantClusterTruckType));
+    // debug(JSON.stringify(outputPlantClusterTruckType));
     process.exit(0);
   }
   writeIndents();
