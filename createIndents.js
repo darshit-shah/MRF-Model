@@ -1,6 +1,44 @@
 var fs = require('fs');
 var debug = require('debug')('model:model');
 var utils = {
+  //example evenDistributionRange({input:[{start:1, end:11}],output:[]}, true);
+  evenDistributionRange: function(json, include, cb) {
+    var self = this;
+    if (json.input.length <= 0) {
+      // debug(json.output);
+      if (cb) {
+        cb(json);
+      }
+      return;
+    }
+    var currInput = json.input.shift();
+    var start = currInput.start;
+    var end = currInput.end;
+    if (include === true) {
+      json.output.push(start);
+      json.output.push(end);
+      // console.log("start", start);
+      // console.log("end", end);
+    }
+    var middle = Math.floor((start + end) / 2);
+    // console.log("middle", middle);
+    json.output.push(middle);
+    if (middle - start > 1) {
+      json.input.push({
+        start: start,
+        end: middle
+      });
+    }
+    if (end - middle > 1) {
+      json.input.push({
+        start: middle,
+        end: end
+      });
+    }
+    setTimeout(function() {
+      self.evenDistributionRange(json, false, cb);
+    }, 1);
+  },
   readCSVFile: function(path, fieldsLength, convertUpper) {
     var data = fs.readFileSync(path);
     var rows = data.toString().split("\n");
@@ -245,8 +283,8 @@ function createIndents() {
       var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4];
       var destination = currRow[5];
       var demandValue = parseInt(currRow[6]);
-      if(demandValue <= 0){
-        demand.splice(i,1);
+      if (demandValue <= 0) {
+        demand.splice(i, 1);
         i--;
         continue;
       }
@@ -273,7 +311,7 @@ function createIndents() {
               var selectedOperator = operators[operatorIndex];
               // if(plant==="1150")
               // debug("Selected Operator", selectedOperator, "for index ", i, demandValue);
-              if(outputClusterTruckTypeResult[selectedOperator]==undefined || outputClusterTruckTypeResult[selectedOperator][SGIndex] == undefined){
+              if (outputClusterTruckTypeResult[selectedOperator] == undefined || outputClusterTruckTypeResult[selectedOperator][SGIndex] == undefined) {
                 continue;
               }
               var SGRow = outputClusterTruckTypeResult[selectedOperator][SGIndex];
@@ -292,8 +330,8 @@ function createIndents() {
                   found = true;
                   continueWhile = true;
                   // if (SGRow.supply === 0) {
-                    // outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
-                    // SGIndex--;
+                  // outputClusterTruckTypeResult[selectedOperator].splice(SGIndex, 1);
+                  // SGIndex--;
                   // }
                   break;
                 }
@@ -321,14 +359,108 @@ function createIndents() {
           }
         }
       } else {
-        debug("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
-        demand.splice(i,1);
+        debug("Unknown clusterTruckTypeKey : " + clusterTruckTypeKey);
+        demand.splice(i, 1);
         i--;
         continue;
         // throw Error("Unknown clusterTruckTypeKey : "+ clusterTruckTypeKey);
       }
       // debug("Loop", i);
     }
+  }
+
+  function prepareDates(SGDates, distributionType, cb) {
+    debug(SGDates);
+    var SG1Dates = [];
+    var SG2Dates = [];
+    var numDaysInCurrBucket = SGDates.length;
+    var SG1DatesLength = Math.ceil(numDaysInCurrBucket / 2);
+    var SG2DatesLength = numDaysInCurrBucket - SG1DatesLength;
+    if (distributionType === "sequance") {
+      for (var i = 0; i < SG1DatesLength; i++) {
+        SG1Dates.push(SGDates[i]);
+      }
+      for (var i = SG1DatesLength; i < numDaysInCurrBucket; i++) {
+        SG2Dates.push(SGDates[i]);
+      }
+      cb(SG1Dates, SG2Dates);
+      return;
+    } else if (distributionType === "distribution") {
+      if (SG1DatesLength % 2 === 0) {
+        utils.evenDistributionRange({
+          input: [{
+            start: 1,
+            end: SG1DatesLength + 1
+          }],
+          output: []
+        }, false, function(output) {
+          output.output.unshift(1);
+          debug("SG1DatesLength % 2 === 0", output.output);
+          applySGDates(output, SG1Dates);
+        });
+      } else {
+        utils.evenDistributionRange({
+          input: [{
+            start: 1,
+            end: SG1DatesLength
+          }],
+          output: []
+        }, true, function(output) {
+          debug("SG1DatesLength % 2 !== 0", output.output);
+          applySGDates(output, SG1Dates);
+        });
+      }
+
+      if (SG2DatesLength % 2 === 0) {
+        utils.evenDistributionRange({
+          input: [{
+            start: SG1DatesLength + 1,
+            end: numDaysInCurrBucket + 1
+          }],
+          output: []
+        }, false, function(output) {
+          output.output.unshift(SG1DatesLength + 1);
+          debug("SG2DatesLength % 2 === 0", output.output);
+          applySGDates(output, SG2Dates);
+        });
+      } else {
+        utils.evenDistributionRange({
+          input: [{
+            start: SG1DatesLength + 1,
+            end: numDaysInCurrBucket
+          }],
+          output: []
+        }, true, function(output) {
+          debug("SG2DatesLength % 2 !== 0", output.output);
+          applySGDates(output, SG2Dates);
+        });
+      }
+    }
+
+    function applySGDates(output, SGDatesLocal) {
+      debug("applySGDates", output.output)
+      output.output.forEach(function(index) {
+        SGDatesLocal.push(SGDates[index - 1]);
+      });
+
+      if (SG1Dates.length > 0 && SG2Dates.length > 0) {
+        cb(SG1Dates, SG2Dates);
+      }
+    }
+
+    // if (numDaysInBucket === 8) {
+    //   SG1Dates = [1, 3, 2, 4];
+    //   SG2Dates = [5, 7, 6, 8];
+    // } else if (numDaysInBucket === 9) {
+    //   SG1Dates = [1, 3, 5, 2, 4];
+    //   SG2Dates = [6, 8, 7, 9];
+    // } else if (numDaysInBucket === 10) {
+    //   SG1Dates = [1, 3, 5, 2, 4];
+    //   SG2Dates = [6, 8, 10, 7, 9];
+    // } else {
+    //   SG1Dates = [1, 3, 5, 2, 4, 6];
+    //   SG2Dates = [7, 9, 11, 8, 10];
+    // }
   }
 
   function writeIndents() {
@@ -350,130 +482,127 @@ function createIndents() {
       //   return 1;
       // return 0;
     });
-
-    var SG1Dates = [];
-    var SG2Dates = [];
-    if (numDaysInBucket === 8) {
-      SG1Dates = [1, 3, 2, 4];
-      SG2Dates = [5, 7, 6, 8];
-    } else if (numDaysInBucket === 9) {
-      SG1Dates = [1, 3, 5, 2, 4];
-      SG2Dates = [6, 8, 7, 9];
-    } else if (numDaysInBucket === 10) {
-      SG1Dates = [1, 3, 5, 2, 4];
-      SG2Dates = [6, 8, 10, 7, 9];
-    } else {
-      SG1Dates = [1, 3, 5, 2, 4, 6];
-      SG2Dates = [7, 9, 11, 8, 10];
+    var SGDates = [];
+    for (var dIndex = 0; dIndex < numDaysInBucket; dIndex++) {
+      SGDates.push(dIndex + 1);
     }
-    var destinationCounter = {};
-    var operatorCounter = {};
+    prepareDates(SGDates, "sequance", function(SG1Dates, SG2Dates) {
+      // var SG1Dates = [];
+      // var SG2Dates = [];
+      // if (numDaysInBucket === 8) {
+      //   SG1Dates = [1, 3, 2, 4];
+      //   SG2Dates = [5, 7, 6, 8];
+      // } else if (numDaysInBucket === 9) {
+      //   SG1Dates = [1, 3, 5, 2, 4];
+      //   SG2Dates = [6, 8, 7, 9];
+      // } else if (numDaysInBucket === 10) {
+      //   SG1Dates = [1, 3, 5, 2, 4];
+      //   SG2Dates = [6, 8, 10, 7, 9];
+      // } else {
+      //   SG1Dates = [1, 3, 5, 2, 4, 6];
+      //   SG2Dates = [7, 9, 11, 8, 10];
+      // }
 
-    function getDateCounter() {
-      var Parts = {
-        SG1: [],
-        SG2: []
-      };
-      for (var i = 0; i < SG1Dates.length; i++) {
-        Parts.SG1[i] = {
-          key: SG1Dates[i],
-          counter: 0,
-          index: i
+      var destinationCounter = {};
+      var operatorCounter = {};
+
+      function getDateCounter() {
+        var Parts = {
+          SG1: [],
+          SG2: []
         };
-      }
-      for (var i = 0; i < SG2Dates.length; i++) {
-        Parts.SG2[i] = {
-          key: SG2Dates[i],
-          counter: 0,
-          index: i
-        };
-      }
-      return Parts;
-    }
-
-    function findDateFor(destination, operator, part) {
-      if (!destinationCounter.hasOwnProperty(destination)) {
-        destinationCounter[destination] = getDateCounter();
-      }
-      if (!operatorCounter.hasOwnProperty(operator)) {
-        operatorCounter[operator] = getDateCounter();
-      }
-      var availableDays = [];
-      if (part == "SG1")
-        availableDays = SG1Dates;
-      else
-        availableDays = SG2Dates;
-      var desinations = destinationCounter[destination][part].filter(function(d) {
-        return availableDays.indexOf(d.key) !== -1;
-      });
-      var minSelection = [{
-        key: desinations[0].key,
-        index: desinations[0].index
-      }];
-      var minCounter = desinations[0].counter;
-      for (var i = 1; i < desinations.length; i++) {
-        if (minCounter > desinations[i].counter) {
-          minSelection = [{
-            key: desinations[i].key,
-            index: desinations[i].index
-          }];
-          minCounter = desinations[i].counter;
-        } else if (minCounter === desinations[i].counter) {
-          minSelection.push({
-            key: desinations[i].key,
-            index: desinations[i].index
-          });
+        for (var i = 0; i < SG1Dates.length; i++) {
+          Parts.SG1[i] = {
+            key: SG1Dates[i],
+            counter: 0,
+            index: i
+          };
         }
-      }
-
-      // debug(operatorCounter, operator, part, minSelection);
-      availableDays = minSelection.map(function(d) {
-        return d.key;
-      });
-      var operators = operatorCounter[operator][part].filter(function(d) {
-        return availableDays.indexOf(d.key) !== -1;
-      });
-      minSelection = [{
-        key: operators[0].key,
-        index: operators[0].index
-      }];
-      minCounter = operators[0].counter;
-      for (var i = 1; i < operators.length; i++) {
-        if (minCounter > operators[i].counter) {
-          minSelection = [{
-            key: operators[i].key,
-            index: operators[i].index
-          }];
-          minCounter = operators[i].counter;
-        } else if (minCounter === operators[i].counter) {
-          minSelection.push({
-            key: operators[i].key,
-            index: operators[i].index
-          });
+        for (var i = 0; i < SG2Dates.length; i++) {
+          Parts.SG2[i] = {
+            key: SG2Dates[i],
+            counter: 0,
+            index: i
+          };
         }
+        return Parts;
       }
-      destinationCounter[destination][part][minSelection[0].index].counter++;
-      operatorCounter[operator][part][minSelection[0].index].counter++;
-      return minSelection[0].key;
-    }
 
-    for (var i = 0; i < indents.length; i++) {
-      indents[i].Date = findDateFor(indents[i].Destination, indents[i].operator, indents[i].Part);
-      delete indents[i].sortIndex;
-      // debug(indents[i]);
-      // var dateIndex = Parts[indents[i].Part].counter % Parts[indents[i].Part].Dates.length;
-      // debug(Parts[indents[i].part].counter, Parts[indents[i].part].Dates.length, dateIndex, Parts[indents[i].part].Dates[dateIndex]);
-      //indents.push({Cluster:keys[0], TruckType:keys[1], Destination:destination, operator:operator, Part:part});
-      // indents[i].Date = Parts[indents[i].Part].Dates[dateIndex]
-      // Parts[indents[i].Part].counter++;
-    }
-    fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
-    debug("Done.");
-    // debug(ClubPlantDemand['1150/1180']);
-    // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
-    // debug(ClubPlantDemand['1150/1180'].Plants['1180']);
-    // debug(JSON.stringify(outputPlantClusterTruckType));
-    process.exit(0);
+      function findDateFor(destination, operator, part) {
+        if (!destinationCounter.hasOwnProperty(destination)) {
+          destinationCounter[destination] = getDateCounter();
+        }
+        if (!operatorCounter.hasOwnProperty(operator)) {
+          operatorCounter[operator] = getDateCounter();
+        }
+        var availableDays = [];
+        if (part == "SG1")
+          availableDays = SG1Dates;
+        else
+          availableDays = SG2Dates;
+        var desinations = destinationCounter[destination][part].filter(function(d) {
+          return availableDays.indexOf(d.key) !== -1;
+        });
+        var minSelection = [{
+          key: desinations[0].key,
+          index: desinations[0].index
+        }];
+        var minCounter = desinations[0].counter;
+        for (var i = 1; i < desinations.length; i++) {
+          if (minCounter > desinations[i].counter) {
+            minSelection = [{
+              key: desinations[i].key,
+              index: desinations[i].index
+            }];
+            minCounter = desinations[i].counter;
+          } else if (minCounter === desinations[i].counter) {
+            minSelection.push({
+              key: desinations[i].key,
+              index: desinations[i].index
+            });
+          }
+        }
+
+        // debug(operatorCounter, operator, part, minSelection);
+        availableDays = minSelection.map(function(d) {
+          return d.key;
+        });
+        var operators = operatorCounter[operator][part].filter(function(d) {
+          return availableDays.indexOf(d.key) !== -1;
+        });
+        minSelection = [{
+          key: operators[0].key,
+          index: operators[0].index
+        }];
+        minCounter = operators[0].counter;
+        for (var i = 1; i < operators.length; i++) {
+          if (minCounter > operators[i].counter) {
+            minSelection = [{
+              key: operators[i].key,
+              index: operators[i].index
+            }];
+            minCounter = operators[i].counter;
+          } else if (minCounter === operators[i].counter) {
+            minSelection.push({
+              key: operators[i].key,
+              index: operators[i].index
+            });
+          }
+        }
+        destinationCounter[destination][part][minSelection[0].index].counter++;
+        operatorCounter[operator][part][minSelection[0].index].counter++;
+        return minSelection[0].key;
+      }
+
+      for (var i = 0; i < indents.length; i++) {
+        indents[i].Date = findDateFor(indents[i].Destination, indents[i].operator, indents[i].Part);
+        delete indents[i].sortIndex;
+      }
+      fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
+      debug("Done.");
+      // debug(JSON.stringify(outputPlantClusterTruckType));
+      process.exit(0);
+    });
   }
   writeIndents();
 }
