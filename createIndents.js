@@ -147,14 +147,139 @@ function createIndents() {
     ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].demand += demandValue;
   }
 
-  var outputPlantClusterTruckType = {};
+  var ClubPlantKeys = Object.keys(ClubPlantDemand);
+  ClubPlantKeys.forEach(function(ClubPlantKey) {
+    var PlantKeys = Object.keys(ClubPlantDemand[ClubPlantKey].Plants);
+    PlantKeys.forEach(function(PlantKey) {
+      ClubPlantDemand[ClubPlantKey].Plants[PlantKey].perc = ClubPlantDemand[ClubPlantKey].Plants[PlantKey].demand / ClubPlantDemand[ClubPlantKey].totalDemand;
+    });
+  });
+
+  var newOutput = [output[0]];
+  var JSONOutput = [];
+  newOutput[0].push("Plant");
+  newOutput[0].push("PlantDemand");
   for (var i = 1; i < output.length; i++) {
     var currRow = output[i];
     var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4];
-    var plantName = currRow[0];
+    var ClubPlantKey = currRow[0];
     var operatorKey = currRow[3];
     var part = currRow[5];
     var supply = parseInt(currRow[6]);
+    var remainingSupply = supply;
+
+    if (plantClusterTruckTypeKey === "1150/1180:::S8:::S8:::18 FT") {
+      debug(operatorKey, part, ClubPlantDemand[plantClusterTruckTypeKey].totalDemand, supply);
+    }
+
+    if (!ClubPlantDemand.hasOwnProperty(plantClusterTruckTypeKey)) {
+      throw Error("plantClusterTruckTypeKey Not found :" + plantClusterTruckTypeKey);
+    } else {
+      var PlantKeys = Object.keys(ClubPlantDemand[plantClusterTruckTypeKey].Plants);
+      PlantKeys.forEach(function(PlantKey, index) {
+        if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand == undefined) {
+          ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand = ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].demand;
+        }
+        var newRow = currRow.slice(0, currRow.length);
+        var currSupply = Math.floor(ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].perc * supply);
+        if (currSupply > remainingSupply) {
+          currSupply = remainingSupply;
+        }
+        if (currSupply > ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand) {
+          currSupply = ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand;
+        }
+
+        remainingSupply -= currSupply;
+        ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand -= currSupply;
+
+        if (plantClusterTruckTypeKey === "1150/1180:::S8:::S8:::18 FT") {
+          debug("......", PlantKey, currSupply, remainingSupply, ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand);
+        }
+        newRow.push(PlantKey);
+        newRow.push(currSupply);
+        newOutput.push(newRow)
+        JSONOutput.push({
+          ClubPlant: newRow[0],
+          Cluster: newRow[1],
+          SubCluster: newRow[2],
+          Operator: newRow[3],
+          TruckType: newRow[4],
+          Part: newRow[5],
+          Demand: newRow[6],
+          Plant: newRow[7],
+          PlantDemand: newRow[8]
+        });
+      });
+    }
+  }
+
+  output = newOutput;
+
+  var currCouter = 0;
+  var reTry = true;
+  while (reTry === true) {
+    debug(currCouter);
+    reTry = false;
+    for (var SGIndex = 1; SGIndex < 3; SGIndex++) {
+      for (var i = 1; i < output.length; i++) {
+        var currRow = output[i];
+        var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4];
+        var ClubPlantKey = currRow[0];
+        var PlantKey = currRow[7];
+        var part = currRow[5];
+        if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
+          reTry = true;
+        }
+        if (currRow[8] === currCouter && part === ("SG" + SGIndex) && ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
+          ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand -= 1;
+          currRow[8] += 1;
+          JSONOutput[i - 1].PlantDemand += 1;
+        }
+      }
+    }
+    currCouter++;
+  }
+
+  JSONOutput = JSONOutput.filter(function(d) {
+    return d.PlantDemand > 0;
+  });
+
+  fs.writeFileSync(filesDIR + "R2 - Indent Summary by Plant Sub-bucket.csv", utils.JSON2CSV(JSONOutput, true));
+  // output = newOutput
+  var ClubPlantDemand = {};
+  for (var i = 1; i < demand.length; i++) {
+    var currRow = demand[i];
+    var clubPlant = currRow[0];
+    var plant = currRow[1];
+    var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4]+":::"+currRow[0];
+    var destination = currRow[5];
+    var demandValue = parseInt(currRow[6]);
+    if (!ClubPlantDemand.hasOwnProperty(plantClusterTruckTypeKey)) {
+      ClubPlantDemand[plantClusterTruckTypeKey] = {
+        totalDemand: 0,
+        totalSupply: 0,
+        Parts: {},
+        Plants: {}
+      };
+    }
+    if (!ClubPlantDemand[plantClusterTruckTypeKey].Plants.hasOwnProperty(plant)) {
+      ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant] = {
+        demand: 0,
+        perc: 0
+      };
+    }
+    ClubPlantDemand[plantClusterTruckTypeKey].totalDemand += demandValue;
+    ClubPlantDemand[plantClusterTruckTypeKey].Plants[plant].demand += demandValue;
+  }
+
+  var outputPlantClusterTruckType = {};
+  for (var i = 1; i < output.length; i++) {
+    var currRow = output[i];
+    var plantClusterTruckTypeKey = currRow[7] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4]+":::"+currRow[0];
+    var plantName = currRow[7];
+    var operatorKey = currRow[3];
+    var part = currRow[5];
+    var supply = parseInt(currRow[8]);
 
     if (!ClubPlantDemand.hasOwnProperty(plantClusterTruckTypeKey)) {
       ClubPlantDemand[plantClusterTruckTypeKey] = {
@@ -185,6 +310,8 @@ function createIndents() {
 
   var ClubPlantKeys = Object.keys(ClubPlantDemand);
   ClubPlantKeys.forEach(function(ClubPlantKey) {
+    if ((ClubPlantKey === "1150:::S8:::S8:::18 FT" || ClubPlantKey === "1180:::S8:::S8:::18 FT") && ClubPlantDemand[ClubPlantKey].totalDemand !== ClubPlantDemand[ClubPlantKey].totalSupply && ClubPlantDemand[ClubPlantKey].totalSupply !== 0)
+      debug(ClubPlantKey, ClubPlantDemand[ClubPlantKey].totalDemand, ClubPlantDemand[ClubPlantKey].totalSupply);
     var PartKeys = Object.keys(ClubPlantDemand[ClubPlantKey].Parts);
     PartKeys.forEach(function(PartKey) {
       ClubPlantDemand[ClubPlantKey].Parts[PartKey].perc = ClubPlantDemand[ClubPlantKey].Parts[PartKey].supply / ClubPlantDemand[ClubPlantKey].totalSupply;
@@ -204,25 +331,25 @@ function createIndents() {
   // process.exit(0);
 
   var destCountClusterTruckType = {};
-  for (var i = 1; i < destCount.length; i++) {
-    var currRow = destCount[i];
-    var clusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[5];
-    var operatorKey = currRow[4];
-    var destination = currRow[3];
-    var count = currRow[6];
-
-    if (!destCountClusterTruckType.hasOwnProperty(clusterTruckTypeKey)) {
-      destCountClusterTruckType[clusterTruckTypeKey] = {};
-    }
-    if (!destCountClusterTruckType[clusterTruckTypeKey].hasOwnProperty(destination)) {
-      destCountClusterTruckType[clusterTruckTypeKey][destination] = {};
-    }
-    if (!destCountClusterTruckType[clusterTruckTypeKey][destination].hasOwnProperty(operatorKey)) {
-      destCountClusterTruckType[clusterTruckTypeKey][destination][operatorKey] = count;
-    } else {
-      throw Error("Same combination came more than once time", clusterTruckTypeKey, destination, operatorKey);
-    }
-  }
+  // for (var i = 1; i < destCount.length; i++) {
+  //   var currRow = destCount[i];
+  //   var clusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[5];
+  //   var operatorKey = currRow[4];
+  //   var destination = currRow[3];
+  //   var count = currRow[6];
+  //
+  //   if (!destCountClusterTruckType.hasOwnProperty(clusterTruckTypeKey)) {
+  //     destCountClusterTruckType[clusterTruckTypeKey] = {};
+  //   }
+  //   if (!destCountClusterTruckType[clusterTruckTypeKey].hasOwnProperty(destination)) {
+  //     destCountClusterTruckType[clusterTruckTypeKey][destination] = {};
+  //   }
+  //   if (!destCountClusterTruckType[clusterTruckTypeKey][destination].hasOwnProperty(operatorKey)) {
+  //     destCountClusterTruckType[clusterTruckTypeKey][destination][operatorKey] = count;
+  //   } else {
+  //     throw Error("Same combination came more than once time", clusterTruckTypeKey, destination, operatorKey);
+  //   }
+  // }
   // debug(destCountClusterTruckType);
 
   function selectOperatorForDestination(clusterTruckTypeKey, destination, operators) {
@@ -259,8 +386,8 @@ function createIndents() {
     // }
     for (var i = 0; i < trucks; i++) {
       indents.push({
-        Plant: plant,
-        ClubPlants: keys[0],
+        Plant: keys[0],
+        ClubPlants: keys[4],
         Cluster: keys[1],
         SubCLuster: keys[2],
         TruckType: keys[3],
@@ -280,7 +407,7 @@ function createIndents() {
       var currRow = demand[i];
       var clubPlant = currRow[0];
       var plant = currRow[1];
-      var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4];
+      var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4]+":::"+currRow[0];
       var destination = currRow[5];
       var demandValue = parseInt(currRow[6]);
       if (demandValue <= 0) {
@@ -351,7 +478,8 @@ function createIndents() {
             // debug(ClubPlantDemand['1150/1180']);
             // debug(ClubPlantDemand['1150/1180'].Plants['1150']);
             // debug(ClubPlantDemand['1150/1180'].Plants['1180']);
-            debug(ClubPlantDemand[plantClusterTruckTypeKey].Plants['1150'], ClubPlantDemand[plantClusterTruckTypeKey].Plants['1180']);
+            debug(ClubPlantDemand[plantClusterTruckTypeKey]);
+            debug(ClubPlantDemand[plantClusterTruckTypeKey].Plants['1150']);
             debug(i, " out of ", demand.length, currRow);
             // writeIndents();
             throw Error("Issue with operator selection");
@@ -359,7 +487,7 @@ function createIndents() {
           }
         }
       } else {
-        debug("Unknown clusterTruckTypeKey : " + clusterTruckTypeKey);
+        debug("Unknown plantClusterTruckTypeKey : " + plantClusterTruckTypeKey);
         demand.splice(i, 1);
         i--;
         continue;
