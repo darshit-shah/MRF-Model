@@ -184,42 +184,46 @@ function runModel() {
   var demandConstraintSG2 = [];
   for (var dIndex = 0; dIndex < demandKeys.length; dIndex++) {
     // if (demandValues[dIndex].demand > 0 && demandValues[dIndex].decisionVariablesSG1.length + demandValues[dIndex].decisionVariablesSG2.length > 0) {
-      demandConstraint.push(new Row());
-      demandConstraintSG1.push(new Row());
-      demandConstraintSG2.push(new Row());
-      var found = false;
-      for (var j = 0; j < demandValues[dIndex].decisionVariablesSG1.length; j++) {
-        demandConstraint[dIndex] = demandConstraint[dIndex].Add(demandValues[dIndex].decisionVariablesSG1[j], 1);
-        demandConstraintSG1[dIndex] = demandConstraintSG1[dIndex].Add(demandValues[dIndex].decisionVariablesSG1[j], 1);
-        found = true;
+    demandConstraint.push(new Row());
+    demandConstraintSG1.push(new Row());
+    demandConstraintSG2.push(new Row());
+    var found = false;
+    for (var j = 0; j < demandValues[dIndex].decisionVariablesSG1.length; j++) {
+      demandConstraint[dIndex] = demandConstraint[dIndex].Add(demandValues[dIndex].decisionVariablesSG1[j], 1);
+      demandConstraintSG1[dIndex] = demandConstraintSG1[dIndex].Add(demandValues[dIndex].decisionVariablesSG1[j], 1);
+      found = true;
+    }
+    for (var j = 0; j < demandValues[dIndex].decisionVariablesSG2.length; j++) {
+      demandConstraint[dIndex] = demandConstraint[dIndex].Add(demandValues[dIndex].decisionVariablesSG2[j], 1);
+      demandConstraintSG2[dIndex] = demandConstraintSG2[dIndex].Add(demandValues[dIndex].decisionVariablesSG2[j], 1);
+      found = true;
+    }
+    if (found === true) {
+      lp.addConstraint(demandConstraint[dIndex], 'EQ', demandValues[dIndex].demand, 'demand (' + demandValues[dIndex].key + ')');
+      var SG1Demand = demandValues[dIndex].demand * 0.55;
+      if (SG1Demand - parseInt(SG1Demand) === 0) {
+        // lp.addConstraint(demandConstraintSG1[dIndex], 'EQ', SG1Demand, 'demand SG1 (' + demandValues[dIndex].key + ')');
+        SG1Demand -= 0.00001;
       }
-      for (var j = 0; j < demandValues[dIndex].decisionVariablesSG2.length; j++) {
-        demandConstraint[dIndex] = demandConstraint[dIndex].Add(demandValues[dIndex].decisionVariablesSG2[j], 1);
-        demandConstraintSG2[dIndex] = demandConstraintSG2[dIndex].Add(demandValues[dIndex].decisionVariablesSG2[j], 1);
-        found = true;
-      }
-      if (found === true) {
-        lp.addConstraint(demandConstraint[dIndex], 'EQ', demandValues[dIndex].demand, 'demand (' + demandValues[dIndex].key + ')');
-        var SG1Demand = demandValues[dIndex].demand * 0.55;
-        if (SG1Demand - parseInt(SG1Demand) === 0) {
-          lp.addConstraint(demandConstraintSG1[dIndex], 'EQ', SG1Demand, 'demand SG1 (' + demandValues[dIndex].key + ')');
-        } else {
-          lp.addConstraint(demandConstraintSG1[dIndex], 'GE', Math.floor(SG1Demand), 'demand SG1 floor (' + demandValues[dIndex].key + ')');
-          lp.addConstraint(demandConstraintSG1[dIndex], 'LE', Math.ceil(SG1Demand), 'demand SG1 Ceil(' + demandValues[dIndex].key + ')');
-        }
+      // else {
+      lp.addConstraint(demandConstraintSG1[dIndex], 'GE', Math.floor(SG1Demand), 'demand SG1 floor (' + demandValues[dIndex].key + ')');
+      lp.addConstraint(demandConstraintSG1[dIndex], 'LE', Math.ceil(SG1Demand), 'demand SG1 Ceil  (' + demandValues[dIndex].key + ')');
+      // }
 
-        var SG2Demand = demandValues[dIndex].demand * 0.45;
-        if (SG2Demand - parseInt(SG2Demand) === 0) {
-          lp.addConstraint(demandConstraintSG2[dIndex], 'EQ', SG2Demand, 'demand SG2 (' + demandValues[dIndex].key + ')');
-        } else {
-          lp.addConstraint(demandConstraintSG2[dIndex], 'GE', Math.floor(SG2Demand), 'demand SG2 floor (' + demandValues[dIndex].key + ')');
-          lp.addConstraint(demandConstraintSG2[dIndex], 'LE', Math.ceil(SG2Demand), 'demand SG2 Ceil(' + demandValues[dIndex].key + ')');
-        }
-      } else {
-        lp.addConstraint(demandConstraint[dIndex], 'EQ', 0, 'demand (' + demandValues[dIndex].key + ')');
-        lp.addConstraint(demandConstraintSG1[dIndex], 'EQ', 0, 'demand SG1 (' + demandValues[dIndex].key + ')');
-        lp.addConstraint(demandConstraintSG2[dIndex], 'EQ', 0, 'demand SG2 (' + demandValues[dIndex].key + ')');
+      var SG2Demand = demandValues[dIndex].demand * 0.45;
+      if (SG2Demand - parseInt(SG2Demand) === 0) {
+        //lp.addConstraint(demandConstraintSG2[dIndex], 'EQ', SG2Demand, 'demand SG2 (' + demandValues[dIndex].key + ')');
+        SG2Demand -= 0.00001;
       }
+      // else {
+      lp.addConstraint(demandConstraintSG2[dIndex], 'GE', Math.floor(SG2Demand), 'demand SG2 floor (' + demandValues[dIndex].key + ')');
+      lp.addConstraint(demandConstraintSG2[dIndex], 'LE', Math.ceil(SG2Demand), 'demand SG2 Ceil  (' + demandValues[dIndex].key + ')');
+      // }
+    } else {
+      lp.addConstraint(demandConstraint[dIndex], 'EQ', 0, 'demand (' + demandValues[dIndex].key + ')');
+      lp.addConstraint(demandConstraintSG1[dIndex], 'EQ', 0, 'demand SG1 (' + demandValues[dIndex].key + ')');
+      lp.addConstraint(demandConstraintSG2[dIndex], 'EQ', 0, 'demand SG2 (' + demandValues[dIndex].key + ')');
+    }
     // }
     // else {
     //   demandConstraint.push(null);
@@ -234,42 +238,54 @@ function runModel() {
   var operatorConstraintGT = [];
   for (var dIndex = 0; dIndex < operatorKeys.length; dIndex++) {
     // if (operatorValues[dIndex].supply > 0 && operatorValues[dIndex].decisionVariablesSG1.length + operatorValues[dIndex].decisionVariablesSG2.length > 0) {
-      operatorConstraint.push(new Row());
-      operatorConstraintSG1.push(new Row());
-      operatorConstraintSG2.push(new Row());
-      operatorConstraintGT.push(new Row());
-      var value = operatorValues[dIndex].supply;
-      var found = false;
-      for (var j = 0; j < operatorValues[dIndex].decisionVariablesSG1.length; j++) {
-        operatorConstraint[dIndex] = operatorConstraint[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
-        // operatorConstraintGT[dIndex] = operatorConstraintGT[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
-        operatorConstraintSG1[dIndex] = operatorConstraintSG1[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
-        found = true;
-      }
-      for (var j = 0; j < operatorValues[dIndex].decisionVariablesSG2.length; j++) {
-        operatorConstraint[dIndex] = operatorConstraint[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], 1);
-        // operatorConstraintGT[dIndex] = operatorConstraintGT[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], -1);
-        operatorConstraintSG2[dIndex] = operatorConstraintSG2[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], 1);
-        found = true;
-      }
-      if (found === true) {
-        // lp.addConstraint(operatorConstraintGT[dIndex], 'GE', 0, 'supply GT(' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraint[dIndex], 'GE', operatorValues[dIndex].supply - 1, 'supply (' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraint[dIndex], 'LE', operatorValues[dIndex].supply, 'supply (' + operatorValues[dIndex].key + ')');
+    operatorConstraint.push(new Row());
+    operatorConstraintSG1.push(new Row());
+    operatorConstraintSG2.push(new Row());
+    operatorConstraintGT.push(new Row());
+    var value = operatorValues[dIndex].supply;
+    var found = false;
+    for (var j = 0; j < operatorValues[dIndex].decisionVariablesSG1.length; j++) {
+      operatorConstraint[dIndex] = operatorConstraint[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
+      // operatorConstraintGT[dIndex] = operatorConstraintGT[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
+      operatorConstraintSG1[dIndex] = operatorConstraintSG1[dIndex].Add(operatorValues[dIndex].decisionVariablesSG1[j], 1);
+      found = true;
+    }
+    for (var j = 0; j < operatorValues[dIndex].decisionVariablesSG2.length; j++) {
+      operatorConstraint[dIndex] = operatorConstraint[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], 1);
+      // operatorConstraintGT[dIndex] = operatorConstraintGT[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], -1);
+      operatorConstraintSG2[dIndex] = operatorConstraintSG2[dIndex].Add(operatorValues[dIndex].decisionVariablesSG2[j], 1);
+      found = true;
+    }
+    if (found === true) {
+      // lp.addConstraint(operatorConstraintGT[dIndex], 'GE', 0, 'supply GT(' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraint[dIndex], 'GE', operatorValues[dIndex].supply - 1, 'supply (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraint[dIndex], 'LE', operatorValues[dIndex].supply, 'supply (' + operatorValues[dIndex].key + ')');
 
-        var SG1Supply = operatorValues[dIndex].supply * 0.55;
-        lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply), 'supply SG1 Ceil(' + operatorValues[dIndex].key + ')');
-        //
-        var SG2Supply = operatorValues[dIndex].supply * 0.45;
-        lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply), 'supply SG2 Ceil(' + operatorValues[dIndex].key + ')');
-      } else {
-        // lp.addConstraint(operatorConstraintGT[dIndex], 'EQ', 0, 'supply GT(' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraint[dIndex], 'EQ', 0, 'supply (' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraintSG1[dIndex], 'EQ', 0, 'supply SG1(' + operatorValues[dIndex].key + ')');
-        lp.addConstraint(operatorConstraintSG2[dIndex], 'EQ', 0, 'supply SG2(' + operatorValues[dIndex].key + ')');
+      var SG1Supply = operatorValues[dIndex].supply * 0.55;
+      if (SG1Supply - parseInt(SG1Supply) == 0) {
+        // lp.addConstraint(operatorConstraintSG1[dIndex], 'EQ', SG1Supply, 'supply SG1 (' + operatorValues[dIndex].key + ')');
+        SG1Supply -= 0.0001;
       }
+      // else {
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply), 'supply SG1 Ceil  (' + operatorValues[dIndex].key + ')');
+      // }
+      //
+      var SG2Supply = operatorValues[dIndex].supply * 0.45;
+      if (SG2Supply - parseInt(SG2Supply) == 0) {
+        // lp.addConstraint(operatorConstraintSG2[dIndex], 'EQ', SG2Supply, 'supply SG2 (' + operatorValues[dIndex].key + ')');
+        SG2Supply -= 0.0001;
+      }
+      // else {
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply), 'supply SG2 Ceil  (' + operatorValues[dIndex].key + ')');
+      // }
+    } else {
+      // lp.addConstraint(operatorConstraintGT[dIndex], 'EQ', 0, 'supply GT(' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraint[dIndex], 'EQ', 0, 'supply (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'EQ', 0, 'supply SG1(' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'EQ', 0, 'supply SG2(' + operatorValues[dIndex].key + ')');
+    }
     // }
   }
   // }

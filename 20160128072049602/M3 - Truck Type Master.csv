@@ -1,5 +1,7 @@
 TruckType,Description,Seq
 18 FT,,1
-32 SA,,2
-32 MA,,3
+24 FT,,2
+32 SA,,3
+50 FT,,4
+32 MA,,5
 
