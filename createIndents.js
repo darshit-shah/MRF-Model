@@ -40,8 +40,29 @@ var utils = {
     }, 1);
   },
   readCSVFile: function(path, fieldsLength, convertUpper) {
+    if(!fs.existsSync(path)){
+      return [];
+    }
     var data = fs.readFileSync(path);
-    var rows = data.toString().split("\n");
+    data = data.toString();
+    var delIndex=data.indexOf("\r\n");
+    var delimeter="\r\n";
+    if(delIndex>-1){
+      delimeter = "\r\n";
+    }
+    else {
+      delIndex=data.indexOf("\n");
+      if(delIndex>-1){
+        delimeter = "\n";
+      }
+      else {
+        delIndex=data.indexOf("\r");
+        if(delIndex>-1){
+          delimeter = "\r";
+        }
+      }
+    }
+    var rows = data.split(delimeter);
     for (var rIndex = 0; rIndex < rows.length; rIndex++) {
       if (rows[rIndex].length > 1) {
         rows[rIndex] = rows[rIndex].split(",");
@@ -120,6 +141,14 @@ function createIndents() {
   var output = utils.readCSVFile(filesDIR + 'R1 - Indent Summary by Sub-bucket.csv', 7, true);
   var demand = utils.readCSVFile(filesDIR + 'S9 - Final Demand V2.csv', 7, true);
   var destCount = utils.readCSVFile(filesDIR + 'M10 - Transporter Priority Constraint.csv', 7, true);
+  var holiday = utils.readCSVFile(filesDIR + 'M11 - Master Holiday.csv', 3, true);
+
+  var holidays = [];
+  for (var i = 1; i < holiday.length; i++) {
+    holidays.push(+holiday[i][2].replace(/\r/ig,""));
+  }
+
+  // debug(holiday, holidays);
 
   var ClubPlantDemand = {};
   for (var i = 1; i < demand.length; i++) {
@@ -251,7 +280,7 @@ function createIndents() {
     var currRow = demand[i];
     var clubPlant = currRow[0];
     var plant = currRow[1];
-    var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4]+":::"+currRow[0];
+    var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4] + ":::" + currRow[0];
     var destination = currRow[5];
     var demandValue = parseInt(currRow[6]);
     if (!ClubPlantDemand.hasOwnProperty(plantClusterTruckTypeKey)) {
@@ -275,7 +304,7 @@ function createIndents() {
   var outputPlantClusterTruckType = {};
   for (var i = 1; i < output.length; i++) {
     var currRow = output[i];
-    var plantClusterTruckTypeKey = currRow[7] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4]+":::"+currRow[0];
+    var plantClusterTruckTypeKey = currRow[7] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4] + ":::" + currRow[0];
     var plantName = currRow[7];
     var operatorKey = currRow[3];
     var part = currRow[5];
@@ -407,7 +436,7 @@ function createIndents() {
       var currRow = demand[i];
       var clubPlant = currRow[0];
       var plant = currRow[1];
-      var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4]+":::"+currRow[0];
+      var plantClusterTruckTypeKey = currRow[1] + ":::" + currRow[2] + ":::" + currRow[3] + ":::" + currRow[4] + ":::" + currRow[0];
       var destination = currRow[5];
       var demandValue = parseInt(currRow[6]);
       if (demandValue <= 0) {
@@ -612,8 +641,11 @@ function createIndents() {
     });
     var SGDates = [];
     for (var dIndex = 0; dIndex < numDaysInBucket; dIndex++) {
-      SGDates.push(dIndex + 1);
+      debug(dIndex+1, holidays, holidays.indexOf(dIndex + 1));
+      if (holidays.indexOf(dIndex + 1) == -1)
+        SGDates.push(dIndex + 1);
     }
+    debug("SGDates", SGDates);
     prepareDates(SGDates, "sequance", function(SG1Dates, SG2Dates) {
       // var SG1Dates = [];
       // var SG2Dates = [];
