@@ -688,9 +688,10 @@ function createIndents() {
         return Parts;
       }
 
-      function findDateFor(destination, operator, part) {
-        if (!destinationCounter.hasOwnProperty(destination)) {
-          destinationCounter[destination] = getDateCounter();
+      function findDateFor(plant, destination, operator, part) {
+        var destKey = plant+":::"+destination;
+        if (!destinationCounter.hasOwnProperty(destKey)) {
+          destinationCounter[destKey] = getDateCounter();
         }
         if (!operatorCounter.hasOwnProperty(operator)) {
           operatorCounter[operator] = getDateCounter();
@@ -700,7 +701,7 @@ function createIndents() {
           availableDays = SG1Dates;
         else
           availableDays = SG2Dates;
-        var desinations = destinationCounter[destination][part].filter(function(d) {
+        var desinations = destinationCounter[destKey][part].filter(function(d) {
           return availableDays.indexOf(d.key) !== -1;
         });
         var minSelection = [{
@@ -749,13 +750,13 @@ function createIndents() {
             });
           }
         }
-        destinationCounter[destination][part][minSelection[0].index].counter++;
+        destinationCounter[destKey][part][minSelection[0].index].counter++;
         operatorCounter[operator][part][minSelection[0].index].counter++;
         return minSelection[0].key;
       }
 
       for (var i = 0; i < indents.length; i++) {
-        indents[i].Date = findDateFor(indents[i].Destination, indents[i].operator, indents[i].Part);
+        indents[i].Date = findDateFor(indents[i].Plant, indents[i].Destination, indents[i].operator, indents[i].Part);
         delete indents[i].sortIndex;
       }
       fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
