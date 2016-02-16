@@ -343,6 +343,6 @@ function runModel() {
     }
     fs.writeFileSync(filesDIR + "R1 - Indent Summary by Sub-bucket.csv", rows.join("\n"));
   }
-  process.exit(0);
+  process.exit(modelResult.code);
 }
 runModel();
