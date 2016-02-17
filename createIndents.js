@@ -197,13 +197,14 @@ function createIndents() {
     var supply = parseInt(currRow[6]);
     var remainingSupply = supply;
 
-    if (plantClusterTruckTypeKey === "1150/1180:::S8:::S8:::18 FT") {
-      debug(operatorKey, part, ClubPlantDemand[plantClusterTruckTypeKey].totalDemand, supply);
-    }
+    // if (plantClusterTruckTypeKey === "1150/1180:::W4:::W4:::32 MA") {
+    //   debug(operatorKey, part, ClubPlantDemand[plantClusterTruckTypeKey].totalDemand, supply, remainingSupply);
+    // }
 
     if (!ClubPlantDemand.hasOwnProperty(plantClusterTruckTypeKey)) {
       throw Error("plantClusterTruckTypeKey Not found :" + plantClusterTruckTypeKey);
     } else {
+      var plantRows = [];
       var PlantKeys = Object.keys(ClubPlantDemand[plantClusterTruckTypeKey].Plants);
       PlantKeys.forEach(function(PlantKey, index) {
         if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand == undefined) {
@@ -221,12 +222,28 @@ function createIndents() {
         remainingSupply -= currSupply;
         ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand -= currSupply;
 
-        if (plantClusterTruckTypeKey === "1150/1180:::S8:::S8:::18 FT") {
-          debug("......", PlantKey, currSupply, remainingSupply, ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand);
-        }
+        // if (plantClusterTruckTypeKey === "1150/1180:::W4:::W4:::32 MA") {
+        //   debug("......", PlantKey, currSupply, remainingSupply, ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand);
+        // }
         newRow.push(PlantKey);
         newRow.push(currSupply);
-        newOutput.push(newRow)
+        plantRows.push(newRow)
+      });
+      var currCounter=0;
+      while(remainingSupply>0){
+        plantRows.forEach(function(newRow){
+          // if (plantClusterTruckTypeKey === "1150/1180:::W4:::W4:::32 MA") {
+          //   debug("......", remainingSupply, newRow[7], ClubPlantDemand[plantClusterTruckTypeKey].Plants[newRow[7]].remainingDemand);
+          // }
+          if(+newRow[8] <= currCounter && remainingSupply>0 && ClubPlantDemand[plantClusterTruckTypeKey].Plants[newRow[7]].remainingDemand>0){
+            remainingSupply--;
+            ClubPlantDemand[plantClusterTruckTypeKey].Plants[newRow[7]].remainingDemand--;
+            newRow[8] = (+newRow[8]) + 1;
+          }
+        });
+        currCounter++;
+      }
+      plantRows.forEach(function(newRow){
         JSONOutput.push({
           ClubPlant: newRow[0],
           Cluster: newRow[1],
@@ -239,35 +256,39 @@ function createIndents() {
           PlantDemand: newRow[8]
         });
       });
+      newOutput = newOutput.concat(plantRows);
     }
+    // if (plantClusterTruckTypeKey === "1150/1180:::W4:::W4:::32 MA") {
+    //   debug(operatorKey, part, ClubPlantDemand[plantClusterTruckTypeKey].totalDemand, supply, remainingSupply);
+    // }
   }
 
   output = newOutput;
 
-  var currCouter = 0;
-  var reTry = true;
-  while (reTry === true) {
-    debug(currCouter);
-    reTry = false;
-    for (var SGIndex = 1; SGIndex < 3; SGIndex++) {
-      for (var i = 1; i < output.length; i++) {
-        var currRow = output[i];
-        var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4];
-        var ClubPlantKey = currRow[0];
-        var PlantKey = currRow[7];
-        var part = currRow[5];
-        if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
-          reTry = true;
-        }
-        if (currRow[8] === currCouter && part === ("SG" + SGIndex) && ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
-          ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand -= 1;
-          currRow[8] += 1;
-          JSONOutput[i - 1].PlantDemand += 1;
-        }
-      }
-    }
-    currCouter++;
-  }
+  // var currCouter = 0;
+  // var reTry = true;
+  // while (reTry === true) {
+  //   // debug(currCouter);
+  //   reTry = false;
+  //   for (var SGIndex = 1; SGIndex < 3; SGIndex++) {
+  //     for (var i = 1; i < output.length; i++) {
+  //       var currRow = output[i];
+  //       var plantClusterTruckTypeKey = currRow[0] + ":::" + currRow[1] + ":::" + currRow[2] + ":::" + currRow[4];
+  //       var ClubPlantKey = currRow[0];
+  //       var PlantKey = currRow[7];
+  //       var part = currRow[5];
+  //       if (ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
+  //         reTry = true;
+  //       }
+  //       if (currRow[8] === currCouter && part === ("SG" + SGIndex) && ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand > 0) {
+  //         ClubPlantDemand[plantClusterTruckTypeKey].Plants[PlantKey].remainingDemand -= 1;
+  //         currRow[8] += 1;
+  //         JSONOutput[i - 1].PlantDemand += 1;
+  //       }
+  //     }
+  //   }
+  //   currCouter++;
+  // }
 
   JSONOutput = JSONOutput.filter(function(d) {
     return d.PlantDemand > 0;
