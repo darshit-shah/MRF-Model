@@ -261,7 +261,14 @@ function runModel() {
       lp.addConstraint(operatorConstraint[dIndex], 'GE', operatorValues[dIndex].supply - 1, 'supply (' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraint[dIndex], 'LE', operatorValues[dIndex].supply, 'supply (' + operatorValues[dIndex].key + ')');
 
-      var SG1Supply = operatorValues[dIndex].supply * 0.55;
+      var SG1Perc = 0.55;
+      var SG2Perc = 0.45;
+      if(operatorValues[dIndex].supply<=10){
+        SG1Perc = 0.5;
+        SG2Perc = 0.5;
+      }
+
+      var SG1Supply = operatorValues[dIndex].supply * SG1Perc;
       if (SG1Supply - parseInt(SG1Supply) == 0) {
         // lp.addConstraint(operatorConstraintSG1[dIndex], 'EQ', SG1Supply, 'supply SG1 (' + operatorValues[dIndex].key + ')');
         SG1Supply -= 0.0001;
@@ -271,7 +278,7 @@ function runModel() {
       lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply), 'supply SG1 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
       //
-      var SG2Supply = operatorValues[dIndex].supply * 0.45;
+      var SG2Supply = operatorValues[dIndex].supply * SG2Perc;
       if (SG2Supply - parseInt(SG2Supply) == 0) {
         // lp.addConstraint(operatorConstraintSG2[dIndex], 'EQ', SG2Supply, 'supply SG2 (' + operatorValues[dIndex].key + ')');
         SG2Supply -= 0.0001;
@@ -280,6 +287,7 @@ function runModel() {
       lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply), 'supply SG2 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
+      // console.log("Supply:", operatorValues[dIndex].supply, SG1Supply, SG2Supply);
     } else {
       // lp.addConstraint(operatorConstraintGT[dIndex], 'EQ', 0, 'supply GT(' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraint[dIndex], 'EQ', 0, 'supply (' + operatorValues[dIndex].key + ')');
