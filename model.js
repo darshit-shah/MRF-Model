@@ -5,18 +5,40 @@ var lpsolve = require('lp_solve');
 
 var utils = {
   readCSVFile: function(path, fieldsLength, convertUpper) {
+    if(!fs.existsSync(path)){
+      return [];
+    }
     var data = fs.readFileSync(path);
-    var rows = data.toString().split("\n");
+    data = data.toString();
+    var delIndex=data.indexOf("\r\n");
+    var delimeter="\r\n";
+    if(delIndex>-1){
+      delimeter = "\r\n";
+    }
+    else {
+      delIndex=data.indexOf("\n");
+      if(delIndex>-1){
+        delimeter = "\n";
+      }
+      else {
+        delIndex=data.indexOf("\r");
+        if(delIndex>-1){
+          delimeter = "\r";
+        }
+      }
+    }
+    var rows = data.split(delimeter);
     for (var rIndex = 0; rIndex < rows.length; rIndex++) {
-      if (rows[rIndex].length > 0) {
+      if (rows[rIndex].length > 1) {
         rows[rIndex] = rows[rIndex].split(",");
         if (rows[rIndex].length != fieldsLength) {
-          throw Error(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex]);
+          console.log(fieldsLength, " fields required. Found: ", rows[rIndex].length, "Data: ", rows[rIndex]);
+          throw Error("Field Mismatch");
           process.exit(0);
           rows.splice(rIndex, 1);
           rIndex--;
         } else {
-          if (convertUpper != false) {
+          if (convertUpper !== false) {
             for (var fIndex = 0; fIndex < rows[rIndex].length; fIndex++) {
               rows[rIndex][fIndex] = rows[rIndex][fIndex].toUpperCase();
             }
@@ -79,6 +101,15 @@ if (process.argv.length === 3) {
 function runModel() {
   var demand = utils.readCSVFile(filesDIR + 'S8 - Model Demand Input.csv', 5, true);
   var supply = utils.readCSVFile(filesDIR + 'M6 - Transporter Supply Commitment.csv', 10, true);
+  var destCount = utils.readCSVFile(filesDIR + 'M10 - Transporter Priority Constraint.csv', 7, true);
+  var destCountKeyVals={};
+  for (var cIndex = 1; cIndex < destCount.length; cIndex++) {
+    var key = destCount[cIndex][0]+':::'+destCount[cIndex][1]+':::'+destCount[cIndex][2]+':::'+destCount[cIndex][4]+':::'+destCount[cIndex][5];
+    if(!destCountKeyVals.hasOwnProperty(key)){
+      destCountKeyVals[key]=0;
+    }
+    destCountKeyVals[key] += +destCount[cIndex][6];
+  }
 
   var Row = lpsolve.Row;
 
@@ -126,12 +157,19 @@ function runModel() {
   var operatorValues = [];
   for (var i = 1; i < supply.length; i++) {
     var supplyValue = parseInt(supply[i][8]);
-    var usedTillNowCount = parseInt(supply[i][9]);
     var plant = supply[i][0];
     var cluster = supply[i][1];
     var subcluster = supply[i][2];
     var truckType = supply[i][3];
-    var operatorName = supply[i][4]
+    var operatorName = supply[i][4];
+    var usedTillNowCount = parseInt(supply[i][9]);
+    var destCountKey = plant+':::'+cluster+':::'+subcluster+':::'+operatorName+':::'+truckType;
+    if(destCountKeyVals.hasOwnProperty(destCountKey)){
+      usedTillNowCount = destCountKeyVals[destCountKey];
+    }
+    else {
+      //console.log('keyNotFound', destCountKey);
+    }
     if (supplyValue > 0) {
       var localDemandKey = plant + ":::" + cluster + ":::" + subcluster + ":::" + truckType;
       var demandIndex = demandKeys.indexOf(localDemandKey);
@@ -261,11 +299,13 @@ function runModel() {
       lp.addConstraint(operatorConstraint[dIndex], 'GE', operatorValues[dIndex].supply - 1, 'supply (' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraint[dIndex], 'LE', operatorValues[dIndex].supply, 'supply (' + operatorValues[dIndex].key + ')');
 
+      var extra=0;
       var SG1Perc = 0.55;
       var SG2Perc = 0.45;
       if(operatorValues[dIndex].supply<=10){
-        SG1Perc = 0.5;
-        SG2Perc = 0.5;
+        //SG1Perc = 0.5;
+        //SG2Perc = 0.5;
+        extra=0.5;
       }
 
       var SG1Supply = operatorValues[dIndex].supply * SG1Perc;
@@ -274,8 +314,8 @@ function runModel() {
         SG1Supply -= 0.0001;
       }
       // else {
-      lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
-      lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply), 'supply SG1 Ceil  (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply-extra), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply+extra), 'supply SG1 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
       //
       var SG2Supply = operatorValues[dIndex].supply * SG2Perc;
@@ -284,8 +324,8 @@ function runModel() {
         SG2Supply -= 0.0001;
       }
       // else {
-      lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
-      lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply), 'supply SG2 Ceil  (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply-extra), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply+extra), 'supply SG2 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
       // console.log("Supply:", operatorValues[dIndex].supply, SG1Supply, SG2Supply);
     } else {
@@ -332,7 +372,7 @@ function runModel() {
 
   // console.log(objective);
   lp.setObjective(objective);
-  // console.log(lp.dumpProgram());
+  //console.log(lp.dumpProgram());
   var modelResult = lp.solve();
   console.log(modelResult);
   console.log('objective =', lp.getObjectiveValue());
