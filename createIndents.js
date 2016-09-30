@@ -144,7 +144,9 @@ function createIndents() {
   var demand = utils.readCSVFile(filesDIR + 'S9 - Final Demand V2.csv', 7, true);
   var destCount = utils.readCSVFile(filesDIR + 'M10 - Transporter Priority Constraint.csv', 7, true);
   var holiday = utils.readCSVFile(filesDIR + 'M11 - Holiday Master.csv', 4, true);
-
+  var twoPointIndents = utils.readCSVFile(filesDIR + 'S6_5.2 - Final Two Point Merge.csv', 20, true);
+  var twoPointIndentsHeader = twoPointIndents.splice(0,1)[0];
+  
   // var holidays = [];
   var plantHolidays = { 'Default': [] };
   for (var i = 1; i < holiday.length; i++) {
@@ -664,8 +666,23 @@ function createIndents() {
       }
       d["sortIndex"] = destinationCount[key];
     });
+
+    twoPointIndents.forEach(function(d, i) {
+      var key = d[4] + ":::" + d[6] + ":::" + d[7] + ":::" + d[5] + ":::" + d[0];
+      if (!destinationCount.hasOwnProperty(key)) {
+        destinationCount[key] = 0;
+      } else {
+        destinationCount[key]++;
+      }
+      d.push(destinationCount[key]);
+    });
+
     indents = indents.sort(function(a, b) {
       return a.sortIndex - b.sortIndex;
+    });
+
+    twoPointIndents = twoPointIndents.sort(function(a, b) {
+      return a[a.length-1] - b[b.length-1];
     });
 
     var SGDateKeys = Object.keys(plantHolidays);
@@ -688,7 +705,7 @@ function createIndents() {
           postProcessPrepareDates();
         }
       });
-    })
+    });
 
     function postProcessPrepareDates() {
 
@@ -826,6 +843,21 @@ function createIndents() {
         delete indents[i].sortIndex;
       }
       fs.writeFileSync(filesDIR + "O1 - Final Indents.csv", utils.JSON2CSV(indents, true));
+
+      for (var i = 0; i < twoPointIndents.length; i++) {
+        twoPointIndents[i][19] = (findDateFor(twoPointIndents[i][4], twoPointIndents[i][0], twoPointIndents[i][17], twoPointIndents[i][18]));
+      }
+      
+      var twoPointJSON = [];
+      twoPointIndents.forEach(function(d){
+        var tempJSON = {};
+        twoPointIndentsHeader.forEach(function(f, i){
+          tempJSON[f]=d[i];
+        });
+        twoPointJSON.push(tempJSON);
+      });
+      // debug(twoPointJSON);
+      fs.writeFileSync(filesDIR + "S6_5.2 - Final Two Point Merge.csv", utils.JSON2CSV(twoPointJSON, true));
       debug("Done.");
       // debug(JSON.stringify(outputPlantClusterTruckType));
       process.exit(0);
