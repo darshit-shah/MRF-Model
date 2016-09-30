@@ -144,7 +144,7 @@ function createIndents() {
   var demand = utils.readCSVFile(filesDIR + 'S9 - Final Demand V2.csv', 7, true);
   var destCount = utils.readCSVFile(filesDIR + 'M10 - Transporter Priority Constraint.csv', 7, true);
   var holiday = utils.readCSVFile(filesDIR + 'M11 - Holiday Master.csv', 4, true);
-  var twoPointIndents = utils.readCSVFile(filesDIR + 'S6_5.2 - Final Two Point Merge.csv', 20, true);
+  var twoPointIndents = utils.readCSVFile(filesDIR + 'S6_5.2 - Final Two Point Merge.csv', 20, false);
   var twoPointIndentsHeader = twoPointIndents.splice(0,1)[0];
   
   // var holidays = [];
