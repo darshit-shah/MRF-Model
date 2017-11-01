@@ -314,7 +314,7 @@ function runModel() {
         SG1Supply -= 0.0001;
       }
       // else {
-      lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply-extra), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG1[dIndex], 'GE', Math.floor(SG1Supply-extra-0.55), 'supply SG1 floor (' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraintSG1[dIndex], 'LE', Math.ceil(SG1Supply+extra), 'supply SG1 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
       //
@@ -324,7 +324,7 @@ function runModel() {
         SG2Supply -= 0.0001;
       }
       // else {
-      lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply-extra), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
+      lp.addConstraint(operatorConstraintSG2[dIndex], 'GE', Math.floor(SG2Supply-extra-0.45), 'supply SG2 floor (' + operatorValues[dIndex].key + ')');
       lp.addConstraint(operatorConstraintSG2[dIndex], 'LE', Math.ceil(SG2Supply+extra), 'supply SG2 Ceil  (' + operatorValues[dIndex].key + ')');
       // }
       // console.log("Supply:", operatorValues[dIndex].supply, SG1Supply, SG2Supply);
@@ -372,7 +372,7 @@ function runModel() {
 
   // console.log(objective);
   lp.setObjective(objective);
-  //console.log(lp.dumpProgram());
+  // console.log(lp.dumpProgram());
   var modelResult = lp.solve();
   console.log(modelResult);
   console.log('objective =', lp.getObjectiveValue());
